@@ -15,7 +15,9 @@ Vertopal-CLI is available on [PyPI](https://pypi.org/project/vertopal/):
 $ python -m pip install vertopal
 ```
 
-
+You can also download the most recent version of Vertopal-CLI binaries for 
+**Windows**, **MacOS**, and **Linux** from the 
+[releases page](https://github.com/vertopal/vertopal-cli/releases/latest).
 
 ## Using Vertopal-CLI
 
