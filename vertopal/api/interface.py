@@ -22,7 +22,7 @@ class Interface:
     ASYNC: str = "async"
     SYNC: str = "sync"
 
-    @classmethod    
+    @classmethod
     def upload(cls):
         raise NotImplementedError("upload method is not implemented")
 
