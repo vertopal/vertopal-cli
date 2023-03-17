@@ -22,26 +22,6 @@ class Interface:
     ASYNC: str = "async"
     SYNC: str = "sync"
 
-    @classmethod
-    def upload(cls):
-        raise NotImplementedError("upload method is not implemented")
-
-    @classmethod
-    def convert(cls):
-        raise NotImplementedError("convert method is not implemented")
-
-    @classmethod
-    def status(cls):
-        raise NotImplementedError("status method is not implemented")
-
-    @classmethod
-    def task_response(cls):
-        raise NotImplementedError("task_response is not implemented")
-
-    @classmethod
-    def download(cls):
-        raise NotImplementedError("download method is not implemented")
-
     @staticmethod
     def _get_headers(token: str) -> Dict[str, str]:
         """Concatenate the token provided to build and return an HTTP header.
