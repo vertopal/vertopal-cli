@@ -104,8 +104,8 @@ def main() -> None:
             "vertopal",
             "vertopal.py",
         )
-        process = Popen(cmd, cwd=current_dir)
-        process.communicate()
+        with Popen(cmd, cwd=current_dir) as process:
+            process.communicate()
         return True if process.returncode == 0 else False
 
     def archive(delete: bool = False, version: Optional[str] = None) -> None:

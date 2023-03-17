@@ -59,24 +59,25 @@ class API(Interface):
             requests.Response: :class:`Response <Response>` object.
         """
 
-        response = requests.request(
-            "POST",
-            cls.ENDPOINT + "/upload/file",
-            headers=cls._get_headers(token),
-            data={
-                'data': '{'
-                    f'"app": "{app}",'
-                    '"parameters": {'
-                        '"field": "file"'
+        with open(filepath, "rb") as file:
+            response = requests.request(
+                "POST",
+                cls.ENDPOINT + "/upload/file",
+                headers=cls._get_headers(token),
+                data={
+                    'data': '{'
+                        f'"app": "{app}",'
+                        '"parameters": {'
+                            '"field": "file"'
+                        '}'
                     '}'
-                '}'
-            },
-            files=[(
-                "file",
-                (filename, open(filepath, "rb"))
-            )],
-            timeout=30,
-        )
+                },
+                files=[(
+                    "file",
+                    (filename, file)
+                )],
+                timeout=30,
+            )
         return response
 
     @classmethod
