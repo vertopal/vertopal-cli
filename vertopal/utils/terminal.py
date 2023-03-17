@@ -42,7 +42,7 @@ class Terminal:
         ...     input="my_document.docx"
         ...     output_format="txt-markdown"
         ... )
-    """    
+    """
 
     silent: bool = False
     overwrite: bool = False
@@ -84,18 +84,18 @@ class Terminal:
         Returns:
             None
         """
-        
+
         filepath = Path(input).resolve()
         filename = filepath.name
         status = None
         sleep_secs = (10, 20, 30, 60)
         sleep_step = 0
 
-        cls._step("Uploading {}".format(filename), "1/4")
+        cls._step(f"Uploading {filename}", "1/4")
         upload_connector = cls._upload(filename, filepath)
 
         cls._step(
-            "Waiting for {} conversion".format(output_format.upper()),
+            f"Waiting for {output_format.upper()} conversion",
             "2/4"
         )
         convert_connector = cls._convert(
@@ -105,10 +105,8 @@ class Terminal:
         )
 
         cls._step(
-            "Converting {} to {} \u2014 please wait...".format(
-                filename,
-                output_format.upper()
-            ),
+            f"Converting {filename} to "
+            f"{output_format.upper()} \u2014 please wait...",
             "3/4"
         )
         while status != "completed":
@@ -118,7 +116,7 @@ class Terminal:
             task_response = cls._task_status(convert_connector)
             status = task_response.task
 
-        cls._info("Convert vCredits used: {}".format(task_response.vcredits))
+        cls._info(f"Convert vCredits used: {task_response.vcredits}")
 
         if task_response.convert == "failed":
             cls._error(
@@ -182,12 +180,13 @@ class Terminal:
             cls._error("Input file not exists.", end="")
             cls.exit(cls.EX_INPUT_NOT_FOUND)
         except exceptions.ConnectionError:
-            cls._error("Cannot reach API endpoint "
-                      "({}). ".format(vertopal.API.ENDPOINT) +
-                      "Please check your network connection.",
-                      end="")
+            cls._error(
+                f"Cannot reach API endpoint ({vertopal.API.ENDPOINT}). "
+                "Please check your network connection.",
+                end=""
+            )
             cls.exit(cls.EX_CONNECTION_ERROR)
-        except Exception as error:
+        except Exception as error: # pylint: disable=broad-except
             cls._error(repr(error), end="")
             cls.exit(cls.EX_OTHER)
         else:
@@ -200,7 +199,7 @@ class Terminal:
                     end="",
                 )
                 cls.exit(cls.EX_INVALID_JSON_RESPONSE)
-            except Exception as error:
+            except Exception as error: # pylint: disable=broad-except
                 cls._error(repr(error), end="")
                 cls.exit(cls.EX_OTHER)
             # if http response code is 4xx or 5xx
@@ -232,7 +231,7 @@ class Terminal:
 
         Returns:
             str: Upload task connector.
-        """        
+        """
 
         json = cls._call_task(
             vertopal.API.upload,
@@ -263,7 +262,7 @@ class Terminal:
 
         Returns:
             Optional[str]: Convert task connector or exit the program.
-        """        
+        """
 
         json = cls._call_task(
             vertopal.API.convert,
@@ -282,6 +281,7 @@ class Terminal:
 
         cls._error("Entity status is not running.", end="")
         cls.exit(cls.EX_OTHER)
+        return ""
 
     @classmethod
     def _task_status(cls, connector: str) -> SimpleNamespace:
@@ -369,11 +369,10 @@ class Terminal:
                 url=False,
             )
         except exceptions.ConnectionError:
-            cls._error("Cannot reach API endpoint "
-                      "({}). ".format(vertopal.API.ENDPOINT) +
-                      "Please check your network connection.")
+            cls._error(f"Cannot reach API endpoint ({vertopal.API.ENDPOINT}). "
+                        "Please check your network connection.")
             cls.exit(cls.EX_CONNECTION_ERROR)
-        except Exception as error:
+        except Exception as error: # pylint: disable=broad-except
             cls._error(repr(error))
             cls.exit(cls.EX_OTHER)
         else:
@@ -381,7 +380,7 @@ class Terminal:
             if (response.status_code % 1000) // 100 in (4, 5):
                 cls._error(
                     "Got an unsuccessful HTTP response code",
-                    "HTTP-RES-{}".format(response.status_code)
+                    f"HTTP-RES-{response.status_code}"
                 )
                 cls.exit(cls.EX_API_RESPONSE_ERROR)
             else:
@@ -390,7 +389,7 @@ class Terminal:
                     with open(output, 'wb') as fd:
                         for chunk in response.iter_content(chunk_size=128):
                             fd.write(chunk)
-                except Exception as error:
+                except Exception as error: # pylint: disable=broad-except
                     cls._error(repr(error))
                     cls.exit(cls.EX_FILE_WRITE_ERROR)
                 else:
@@ -423,11 +422,11 @@ class Terminal:
 
         Returns:
             None
-        """        
+        """
 
         if cls.silent:
             return
-        line = "[DONE] Your converted file saved as {}".format(str(filename))
+        line = f"[DONE] Your converted file saved as {str(filename)}"
         sys.stdout.write(line)
 
     @classmethod
@@ -444,7 +443,7 @@ class Terminal:
 
         if cls.silent:
             return
-        sys.stdout.write("[{}] {}\n".format(str(step), str(text)))
+        sys.stdout.write(f"[{str(step)}] {str(text)}\n")
 
     @classmethod
     def _error(cls, text: str, errcode: str = None, end: str = "\n") -> None:
@@ -464,7 +463,7 @@ class Terminal:
             return
         errline = "[ERROR"
         if errcode:
-            errline += " {}] ".format(str(errcode))
+            errline += f" {str(errcode)}] "
         else:
             errline += "] "
         errline += str(text) + end
@@ -487,7 +486,7 @@ class Terminal:
             return
         wrnline = "[WARNING"
         if wrncode:
-            wrnline += " {}] ".format(str(wrncode))
+            wrnline += f" {str(wrncode)}] "
         else:
             wrnline += "] "
         wrnline += str(text) + "\n"
@@ -521,7 +520,7 @@ class Terminal:
 
         Returns:
             str: Absolute path of the output file.
-        """        
+        """
 
         def get_output(filename: str) -> str:
             """Consider `Terminal.output_dir` in getting output absolute path.
@@ -531,7 +530,7 @@ class Terminal:
 
             Returns:
                 str: Absolute path of the output file.
-            """            
+            """
 
             if cls.output_dir:
                 return Path(cls.output_dir, filename).resolve()
@@ -544,11 +543,11 @@ class Terminal:
         stem = output.stem
         counter = 1
         while output.is_file() and output.exists():
-            new_name = stem + "-{}".format(counter) + Path(output).suffix
+            new_name = stem + f"-{counter}" + Path(output).suffix
             output = get_output(new_name)
             counter += 1
-        
-        return output 
+
+        return output
 
     @classmethod
     def parse(cls) -> object:
@@ -576,7 +575,7 @@ class Terminal:
             metavar="",
             help=""
         )
-        
+
         # Create the parser for the <convert> command
         parser_convert = subparsers.add_parser(
             "convert",
@@ -644,7 +643,7 @@ class Terminal:
         option = parser.add_argument_group("options")
         option.add_argument("-v", "--version",
             action="version",
-            version="vertopal version {}".format(vertopal.__version__),
+            version=f"vertopal version {vertopal.__version__}",
             help="output version information and exit"
         )
         option.add_argument("-h", "--help",

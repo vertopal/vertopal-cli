@@ -65,11 +65,11 @@ class API(Interface):
             headers=cls._get_headers(token),
             data={
                 'data': '{'
-                    '"app": "%s",'
+                    f'"app": "{app}",'
                     '"parameters": {'
                         '"field": "file"'
                     '}'
-                '}' % (app)
+                '}'
             },
             files=[(
                 "file",
@@ -108,19 +108,19 @@ class API(Interface):
         """
 
         if input:
-            io_field = '"input": "{}","output": "{}"'.format(input, output)
+            io_field = f'"input": "{input}","output": "{output}"'
         else:
-            io_field = '"output": "{}"'.format(output)
+            io_field = f'"output": "{output}"'
         data = {
             'data': '{'
-                '"app": "%s",'
-                '"connector": "%s",'
+                f'"app": "{app}",'
+                f'"connector": "{connector}",'
                 '"include": ["result", "entity"],'
-                '"mode": "%s",'
+                f'"mode": "{mode}",'
                 '"parameters": {'
-                    '%s'
+                    f'{io_field}'
                 '}'
-            '}' % (app, connector, mode, io_field)
+            '}'
         }
         response = requests.request(
             "POST",
@@ -129,7 +129,7 @@ class API(Interface):
             data=data,
         )
         return response
-    
+
     @classmethod
     def status(cls, app: str, token: str, connector: str) -> requests.Response:
         """Send a convert status request to the Vertopal API endpoint.
@@ -149,9 +149,9 @@ class API(Interface):
             headers=cls._get_headers(token),
             data={
                 'data': '{'
-                    '"app": "%s",'
-                    '"connector": "%s"'
-                '}' % (app, connector)
+                    f'"app": "{app}",'
+                    f'"connector": "{connector}"'
+                '}'
             },
         )
         return response
@@ -180,10 +180,10 @@ class API(Interface):
             headers=cls._get_headers(token),
             data={
                 'data': '{'
-                    '"app": "%s",'
-                    '"connector": "%s",'
+                    f'"app": "{app}",'
+                    f'"connector": "{connector}",'
                     '"include": ["result"]'
-                '}' % (app, connector)
+                '}'
             },
         )
         return response
@@ -220,9 +220,9 @@ class API(Interface):
             headers=cls._get_headers(token),
             data={
                 'data': '{'
-                    '"app": "%s",'
-                    '"connector": "%s"'
-                '}' % (app, connector)
+                    f'"app": "{app}",'
+                    f'"connector": "{connector}"'
+                '}'
             },
         )
         return response

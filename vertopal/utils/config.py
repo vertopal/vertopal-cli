@@ -56,8 +56,8 @@ class Config:
         except KeyError:
             cls.write(section, key, "")
             return ""
-        except:
-            raise Exception("reading config failed")
+        except Exception as exc:
+            raise LookupError("reading config failed") from exc
 
     @classmethod
     def write(cls, section: str, key: str, value: str) -> None:
@@ -73,7 +73,7 @@ class Config:
         if section not in cls._config.sections():
             cls._config[section] = {}
         cls._config[section][key] = value
-        with open(cls.PATH, "w") as configfile:
+        with open(cls.PATH, "w", encoding="utf-8") as configfile:
             cls._config.write(configfile)
 
     @classmethod

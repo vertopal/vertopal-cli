@@ -54,5 +54,5 @@ class Interface:
         """
 
         return {
-            "Authorization": "Bearer {}".format(token)
+            "Authorization": f"Bearer {token}"
         }
