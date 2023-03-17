@@ -44,7 +44,7 @@ def main() -> None:
             output_format = output_format.lower()
 
         Terminal.convert(
-            input=args.input,
+            input_file=args.input,
             input_format=input_format,
             output_format=output_format,
         )

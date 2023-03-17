@@ -82,22 +82,22 @@ class API(Interface):
     @classmethod
     def convert(
         cls,
-        output: str,
+        output_format: str,
         app: str,
         token: str,
         connector: str,
-        input: Optional[str] = None,
+        input_format: Optional[str] = None,
         mode: str = Interface.ASYNC
     ) -> requests.Response:
         """Send a convert request to the Vertopal API endpoint.
 
         Args:
-            output (str): The output `format[-type]`, which input file will be
-                converted to.
+            output_format (str): The output `format[-type]`, which input file
+                will be converted to.
             app (str): Your App-ID.
             token (str): Your Security-Token.
             connector (str): The connector from the previous task (Upload).
-            input (str, optional): The input `format[-type]`. If not
+            input_format (str, optional): The input `format[-type]`. If not
                 specified, the `format[-type]` of the input file will be 
                 considered based in its extension and type. Defaults to `None`.
             mode (str, optional): Mode strategy of the task which can be 
@@ -108,10 +108,10 @@ class API(Interface):
             requests.Response: :class:`Response <Response>` object.
         """
 
-        if input:
-            io_field = f'"input": "{input}","output": "{output}"'
+        if input_format:
+            io_field = f'"input": "{input_format}","output": "{output_format}"'
         else:
-            io_field = f'"output": "{output}"'
+            io_field = f'"output": "{output_format}"'
         data = {
             'data': '{'
                 f'"app": "{app}",'

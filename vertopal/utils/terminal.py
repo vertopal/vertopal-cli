@@ -67,14 +67,14 @@ class Terminal:
     @classmethod
     def convert(
             cls,
-            input: str,
+            input_file: str,
             input_format: Optional[str],
             output_format: str
     ) -> None:
         """Convert file by running upload, convert, and download tasks.
 
         Args:
-            input (str): Input file name, relative or absolute path.
+            input_file (str): Input file name, relative or absolute path.
             input_format (Optional[str]): The input file `format[-type]`.
                 E.g. `txt` or `txt-markdown`. If not set, the format will be 
                 considered based on input extension.
@@ -85,7 +85,7 @@ class Terminal:
             None
         """
 
-        filepath = Path(input).resolve()
+        filepath = Path(input_file).resolve()
         filename = filepath.name
         status = None
         sleep_secs = (10, 20, 30, 60)
@@ -267,11 +267,11 @@ class Terminal:
         json = cls._call_task(
             vertopal.API.convert,
             {
-                "output": output,
+                "output_format": output,
                 "app": cls.app_id,
                 "token": cls.security_token,
                 "connector": connector,
-                "input": input_format,
+                "input_format": input_format,
                 "mode": vertopal.API.ASYNC,
             },
         )
