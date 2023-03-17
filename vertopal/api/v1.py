@@ -75,6 +75,7 @@ class API(Interface):
                 "file",
                 (filename, open(filepath, "rb"))
             )],
+            timeout=30,
         )
         return response
 
@@ -127,6 +128,7 @@ class API(Interface):
             cls.ENDPOINT + "/convert/file",
             headers=cls._get_headers(token),
             data=data,
+            timeout=30,
         )
         return response
 
@@ -153,6 +155,7 @@ class API(Interface):
                     f'"connector": "{connector}"'
                 '}'
             },
+            timeout=30,
         )
         return response
 
@@ -185,6 +188,7 @@ class API(Interface):
                     '"include": ["result"]'
                 '}'
             },
+            timeout=30,
         )
         return response
 
@@ -224,5 +228,6 @@ class API(Interface):
                     f'"connector": "{connector}"'
                 '}'
             },
+            timeout=30,
         )
         return response
