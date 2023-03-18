@@ -31,6 +31,9 @@ class Terminal:
         output_dir (str, optional): Directory for saving converted file. 
             If nothing's specified, current working directory will be used. 
             Defaults to `None`.
+        ignore_warning (dict): A dictionary to ignore and skip writing specific 
+            warning messages to the stdout. Each dictionary key stands for a 
+            warning-code, with a value of a list, containing API method names.
 
     Usage:
 
@@ -44,14 +47,9 @@ class Terminal:
         ... )
     """
 
-    silent: bool = False
-    overwrite: bool = False
-    output_dir: Optional[str] = None
-
-    app_id: str = Config.read("api", "appid")
-    security_token: str = Config.read("api", "token")
-
-    # Exit Codes
+    # Constants
+    IGNORE_ALL = "*"
+    # Exit Code Constants
     EX_SUCCESSFUL = 0
     EX_OTHER = 1
     EX_INPUT_NOT_FOUND = 2
@@ -63,6 +61,22 @@ class Terminal:
     EX_INVALID_JSON_RESPONSE = 8
     EX_FILE_WRITE_ERROR = 9
     EX_CONVERT_FAILED = 10
+
+    silent: bool = False
+    overwrite: bool = False
+    output_dir: Optional[str] = None
+    ignore_warning: Dict[str, list] = {
+        # Ignore all except vertopal.API.download
+        "CLI_NEW_VERSION": [
+            vertopal.API.upload.__name__,
+            vertopal.API.convert.__name__,
+            vertopal.API.status.__name__,
+            vertopal.API.task_response.__name__,
+        ],
+    }
+
+    app_id: str = Config.read("api", "appid")
+    security_token: str = Config.read("api", "token")
 
     @classmethod
     def convert(
@@ -208,10 +222,14 @@ class Terminal:
                 cls.exit(cls.EX_API_RESPONSE_ERROR)
             else:
                 if json["result"]["warning"]:
-                    cls._warning(
-                        json["result"]["warning"]["message"],
-                        json["result"]["warning"]["code"]
-                    )
+                    # Iterate over all warning messages
+                    for w_code, w_message in json["result"]["warning"].items():
+                        # Check if it's ignored in the current function call
+                        if (w_code in cls.ignore_warning and
+                                (func.__name__ in cls.ignore_warning[w_code] or
+                                cls.IGNORE_ALL in cls.ignore_warning[w_code])):
+                            continue
+                        cls._warning(w_message, w_code)
                 if json["result"]["error"]:
                     cls._error(
                         json["result"]["error"]["message"],
