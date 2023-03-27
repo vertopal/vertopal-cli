@@ -66,10 +66,7 @@ class API(Interface):
                 headers=cls._get_headers(token),
                 data={
                     'data': '{'
-                        f'"app": "{app}",'
-                        '"parameters": {'
-                            '"field": "file"'
-                        '}'
+                        f'"app": "{app}"'
                     '}'
                 },
                 files=[(

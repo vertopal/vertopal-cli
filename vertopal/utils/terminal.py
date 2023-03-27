@@ -141,7 +141,7 @@ class Terminal:
             )
             cls.exit(cls.EX_CONVERT_FAILED)
 
-        elif task_response.convert == "done":
+        elif task_response.convert == "successful":
             cls._step("Downloading converted file", "4/4")
             download = cls._download(convert_connector)
             cls._download_file(download.connector, download.filename)
