@@ -45,8 +45,8 @@ def main() -> None:
 
         Terminal.convert(
             input_file=args.input,
-            input_format=input_format,
             output_format=output_format,
+            input_format=input_format,
         )
 
     # Write config options to the global user config file

@@ -82,18 +82,18 @@ class Terminal:
     def convert(
             cls,
             input_file: str,
-            input_format: Optional[str],
-            output_format: str
+            output_format: str,
+            input_format: Optional[str] = None
     ) -> None:
         """Convert file by running upload, convert, and download tasks.
 
         Args:
             input_file (str): Input file name, relative or absolute path.
-            input_format (Optional[str]): The input file `format[-type]`.
-                E.g. `txt` or `txt-markdown`. If not set, the format will be 
-                considered based on input extension.
             output_format (str): The output file `format[-type]`.
                 E.g. `db-docbook`.
+            input_format (Optional[str]): The input file `format[-type]`.
+                E.g. `txt` or `txt-markdown`. If not set, the format will be 
+                considered based on input extension. Defaults to `None`.
 
         Returns:
             None
@@ -464,7 +464,12 @@ class Terminal:
         sys.stdout.write(f"[{str(step)}] {str(text)}\n")
 
     @classmethod
-    def _error(cls, text: str, errcode: str = None, end: str = "\n") -> None:
+    def _error(
+        cls,
+        text: str,
+        errcode: Optional[str] = None,
+        end: str = "\n"
+    ) -> None:
         """Write an error-line to the `stderr`.
 
         Args:
@@ -489,7 +494,7 @@ class Terminal:
         sys.stderr.write(errline)
 
     @classmethod
-    def _warning(cls, text: str, wrncode: str = None) -> None:
+    def _warning(cls, text: str, wrncode: Optional[str] = None) -> None:
         """Write a warning-line to the `strout`.
 
         Args:
