@@ -16,7 +16,7 @@ python -m pip install vertopal
 ```
 
 You can also download the most recent version of Vertopal-CLI binaries for
-**MacOS**, **Windows**, and **Linux** from the
+**macOS**, **Windows**, and **Linux** from the
 [releases page](https://github.com/vertopal/vertopal-cli/releases/latest) or
 the [product page](https://www.vertopal.com/en/product/cli).
 
@@ -35,8 +35,16 @@ curl https://run.vertopal.com/cli/macos | bash
 On Windows using PowerShell:
 
 ```bash
-curl.exe https://run.vertopal.com/cli/windows | iex
+(curl https://run.vertopal.com/cli/windows).Content | iex
 ```
+
+If you are getting any **UnauthorizedAccess** error, then start Windows
+PowerShell with the "Run as administrator" option and run
+`Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine`.
+Now re-run the above installation command. To change the
+[*Execution Policies*](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies)
+to its default, you can run
+`Set-ExecutionPolicy -ExecutionPolicy Default -Scope LocalMachine`.
 
 Using Linux Terminal:
 
