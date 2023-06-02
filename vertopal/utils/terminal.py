@@ -137,7 +137,6 @@ class Terminal:
                 "Conversion failed. To learn more, visit: "
                 "https://www.vertopal.com/en/help/post/27",
                 "CONVERT_FAILED",
-                end="",
             )
             cls.exit(cls.EX_CONVERT_FAILED)
 
@@ -147,7 +146,7 @@ class Terminal:
             cls._download_file(download.connector, download.filename)
 
         else:
-            cls._error("An unexpected error happened", end="")
+            cls._error("An unexpected error happened")
             cls.exit(cls.EX_OTHER)
 
     @classmethod
@@ -191,17 +190,16 @@ class Terminal:
         try:
             response = func(**kwargs)
         except FileNotFoundError:
-            cls._error("Input file not exists.", end="")
+            cls._error("Input file not exists.")
             cls.exit(cls.EX_INPUT_NOT_FOUND)
         except exceptions.ConnectionError:
             cls._error(
                 f"Cannot reach API endpoint ({vertopal.API.ENDPOINT}). "
                 "Please check your network connection.",
-                end=""
             )
             cls.exit(cls.EX_CONNECTION_ERROR)
         except Exception as error: # pylint: disable=broad-except
-            cls._error(repr(error), end="")
+            cls._error(repr(error))
             cls.exit(cls.EX_OTHER)
         else:
             try:
@@ -210,15 +208,14 @@ class Terminal:
                 cls._error(
                     "Cannot decode HTTP response",
                     "INVALID_JSON",
-                    end="",
                 )
                 cls.exit(cls.EX_INVALID_JSON_RESPONSE)
             except Exception as error: # pylint: disable=broad-except
-                cls._error(repr(error), end="")
+                cls._error(repr(error))
                 cls.exit(cls.EX_OTHER)
             # if http response code is 4xx or 5xx
             if (response.status_code % 1000) // 100 in (4, 5):
-                cls._error(json["message"], json["code"], end="")
+                cls._error(json["message"], json["code"])
                 cls.exit(cls.EX_API_RESPONSE_ERROR)
             else:
                 if json["result"]["warning"]:
@@ -234,7 +231,6 @@ class Terminal:
                     cls._error(
                         json["result"]["error"]["message"],
                         json["result"]["error"]["code"],
-                        end="",
                     )
                     cls.exit(cls.EX_API_RESPONSE_ERROR)
             return json
@@ -297,7 +293,7 @@ class Terminal:
         if json["entity"]["status"] == "running":
             return json["entity"]["id"]
 
-        cls._error("Entity status is not running.", end="")
+        cls._error("Entity status is not running.")
         cls.exit(cls.EX_OTHER)
         return ""
 
@@ -444,7 +440,7 @@ class Terminal:
 
         if cls.silent:
             return
-        line = f"[DONE] Your converted file saved as {str(filename)}"
+        line = f"[DONE] Your converted file saved as {str(filename)}\n"
         sys.stdout.write(line)
 
     @classmethod
