@@ -1,11 +1,11 @@
 # Vertopal-CLI
 
-**Vertopal-CLI** is a small, yet powerful utility for converting
-digital files to a variety of file formats
-using [Vertopal](https://www.vertopal.com) public API.
+**Vertopal-CLI** is a small yet powerful utility that allows you to convert
+digital files into various formats using the
+[Vertopal public API](https://www.vertopal.com/en/developer/api).
 
 You can use Vertopal-CLI by either *terminal commands* or
-*importing as Python package*.
+*importing as a Python package*.
 
 ## Installing Vertopal-CLI
 
