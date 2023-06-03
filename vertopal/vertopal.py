@@ -26,8 +26,14 @@ def main() -> None:
 
     if args.command == "convert":
 
-        # Show a warning on stdout if AppID & Security Token is not configured
-        Terminal.check_config()
+        if args.app and args.token:
+            Terminal.app_id = args.app
+            Terminal.security_token = args.token
+        else:
+            Terminal.app_id: str = Config.read("api", "appid")
+            Terminal.security_token: str = Config.read("api", "token")
+            # Show a warning on stdout if client credentials are not configured
+            Terminal.check_config()
 
         if args.silent:
             Terminal.silent = True

@@ -18,7 +18,6 @@ from typing import Optional, Dict, Callable, Any
 from requests import exceptions
 
 import vertopal
-from vertopal.utils.config import Config
 
 
 class Terminal:
@@ -75,8 +74,8 @@ class Terminal:
         ],
     }
 
-    app_id: str = Config.read("api", "appid")
-    security_token: str = Config.read("api", "token")
+    app_id: str = ""
+    security_token: str = ""
 
     @classmethod
     def convert(
@@ -626,6 +625,16 @@ class Terminal:
             "-d", "--output-dir",
             metavar="<directory>",
             help="directory for saving converted file"
+        )
+        args_convert.add_argument(
+            "--app",
+            metavar="<app-id>",
+            help="override Application ID in global config file"
+        )
+        args_convert.add_argument(
+            "--token",
+            metavar="<token>",
+            help="override Security Token in global config file"
         )
         args_convert.add_argument(
             "--overwrite",
