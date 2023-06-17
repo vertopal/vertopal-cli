@@ -79,10 +79,10 @@ class Terminal:
 
     @classmethod
     def convert(
-            cls,
-            input_file: str,
-            output_format: str,
-            input_format: Optional[str] = None
+        cls,
+        input_file: str,
+        output_format: str,
+        input_format: Optional[str] = None,
     ) -> None:
         """Convert file by running upload, convert, and download tasks.
 

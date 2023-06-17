@@ -26,7 +26,7 @@ def main() -> None:
     Returns:
         None
     """
-    
+
     current_dir = Path(__file__).parent.resolve()
 
     class Platform:
@@ -149,7 +149,7 @@ def main() -> None:
                 b"https://github.com/vertopal/vertopal-cli"
                 % (Platform.get().encode(), version_string.encode())
             )
-        
+
         if delete and delete_list:
             for file in delete_list:
                 file.unlink()
