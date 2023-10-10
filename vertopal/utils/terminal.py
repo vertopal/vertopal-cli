@@ -41,8 +41,8 @@ class Terminal:
         >>> Terminal.silent = True # Don't write to stdout & stderr
         >>> Terminal.output_dir = "/home/vertopal/convert_output"
         >>> Terminal.convert(
-        ...     input="my_document.docx"
-        ...     output_format="txt-markdown"
+        ...     input="my_document.docx",
+        ...     output_format="txt-markdown",
         ... )
     """
 
@@ -399,9 +399,9 @@ class Terminal:
             else:
                 output = cls._get_output_path(filename)
                 try:
-                    with open(output, 'wb') as fd:
+                    with open(output, 'wb') as file:
                         for chunk in response.iter_content(chunk_size=128):
-                            fd.write(chunk)
+                            file.write(chunk)
                 except Exception as error: # pylint: disable=broad-except
                     cls._error(repr(error))
                     cls.exit(cls.EX_FILE_WRITE_ERROR)
