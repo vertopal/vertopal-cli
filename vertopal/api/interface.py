@@ -24,16 +24,34 @@ class Interface:
 
     ASYNC: str = "async"
     SYNC: str = "sync"
+    UA_CLI: str = "VertopalCLI"
+    UA_LIB: str = "VertopalPythonLib"
+    UA_PRODUCT: str = UA_LIB
 
-    @staticmethod
-    def _get_user_agent() -> str:
-        """Generate user-agent string for HTTP request header.
+    @classmethod
+    def set_ua_product_name(cls, product: str) -> None:
+        """Set User-Agent product name.
+
+        Args:
+            product (str): User-Agent product name.
+
+        Raises:
+            ValueError: If the invalid product name is passed.
+        """
+
+        if product not in (cls.UA_CLI, cls.UA_LIB):
+            raise ValueError("product is not a valid name.")
+        cls.UA_PRODUCT = product
+
+    @classmethod
+    def _get_user_agent(cls) -> str:
+        """Generate User-Agent string for HTTP request header.
 
         Returns:
             str: User-Agent string.
         """
 
-        product: str = "VertopalCLI"
+        product: str = cls.UA_PRODUCT
         product_version: str = __version__
         platform_release: str = platform.release()
         platform_machine: str = platform.machine()

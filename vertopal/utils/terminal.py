@@ -104,6 +104,8 @@ class Terminal:
         sleep_secs = (10, 20, 30, 60)
         sleep_step = 0
 
+        vertopal.API.set_ua_product_name(vertopal.API.UA_CLI)
+
         cls._step(f"Uploading {filename}", "1/4")
         upload_connector = cls._upload(filename, filepath)
 
