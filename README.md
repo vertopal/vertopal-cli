@@ -76,20 +76,23 @@ vertopal config --app "your-app-id" --token "your-security-token"
 
 ### Importing as Python package
 
-Importing vertopal as a Python package gives you
-more control and flexibility over each individual task:
+Importing vertopal as a Python package makes it easy
+to implement file conversions in your projects.
+
+The following code illustrates
+[GIF to APNG](https://www.vertopal.com/en/convert/gif-to-apng) conversion using
+the Vertopal Python package.
 
 ```python
->>> import vertopal
->>> response = vertopal.API.upload(
-...     filename="document.pdf",
-...     filepath="/home/vertopal/document.ipynb",
-...     app="your-app-id",
-...     token="your-security-token",
-... )
->>> response
-<Response [200]>
->>> json_response = response.json()
->>> json_response["result"]["output"]["connector"]
-'the-connector-of-the-upload-task'
+import vertopal
+
+converter = vertopal.Converter(
+    "MickeyMouse.gif",
+    app="your-app-id",
+    token="your-security-token",
+)
+converter.convert("apng")
+converter.wait()
+if converter.is_converted():
+    converter.download()
 ```
