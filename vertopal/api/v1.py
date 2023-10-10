@@ -73,12 +73,12 @@ class API(Interface):
                     "file",
                     (filename, file)
                 )],
-                timeout=30,
+                timeout=300,
             )
         return response
 
     @classmethod
-    def convert(
+    def convert( # pylint: disable=too-many-arguments
         cls,
         output_format: str,
         app: str,
@@ -97,7 +97,7 @@ class API(Interface):
             connector (str): The connector from the previous task (Upload).
             input_format (str, optional): The input `format[-type]`. If not
                 specified, the `format[-type]` of the input file will be 
-                considered based in its extension and type. Defaults to `None`.
+                considered based on its extension and type. Defaults to `None`.
             mode (str, optional): Mode strategy of the task which can be 
                 :class:`Interface.SYNC` or :class:`Interface.ASYNC`. 
                 Defaults to :class:`Interface.ASYNC`.
@@ -204,8 +204,8 @@ class API(Interface):
             app (str): Your App-ID.
             token (str): Your Security-Token.
             connector (str): The connector from the previous task (Convert).
-            url (bool, optional): If `False`, a request for getting download
-                url, and if `True` a request for getting file content will be
+            url (bool, optional): If `True`, a request for getting download
+                url, and if `False` a request for getting file content will be
                 send. Defaults to `False`.
 
         Returns:
@@ -214,8 +214,10 @@ class API(Interface):
 
         if url:
             endpoint = cls.ENDPOINT + "/download/url"
+            timeout = 30
         else:
             endpoint = cls.ENDPOINT + "/download/url/get"
+            timeout = 300
         response = requests.request(
             "POST",
             endpoint,
@@ -226,6 +228,6 @@ class API(Interface):
                     f'"connector": "{connector}"'
                 '}'
             },
-            timeout=30,
+            timeout=timeout,
         )
         return response
