@@ -63,6 +63,26 @@ def main() -> None:
         if args.token:
             Config.write("api", "token", args.token)
 
+    elif args.command == "api":
+
+        if args.app and args.token:
+            app_id = args.app
+            security_token = args.token
+        else:
+            app_id: str = Config.read("api", "appid")
+            security_token: str = Config.read("api", "token")
+
+        Terminal.api(
+            endpoint=args.endpoint,
+            method=args.method,
+            app=app_id,
+            token=security_token,
+            field_params=args.field,
+            version=args.version,
+            full_response=args.include,
+            output=args.output,
+        )
+
 
 if __name__ == "__main__":
     main()

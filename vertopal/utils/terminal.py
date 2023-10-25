@@ -151,6 +151,38 @@ class Terminal:
             cls.exit(cls.EX_OTHER)
 
     @classmethod
+    def api(
+        cls,
+        full_response: bool,
+        output: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
+        """Send requests to the Vertopal API and write its response to stdout.
+
+        Args:
+            full_response (bool): Include HTTP response status line and
+                headers in the output.
+        """
+
+        response = vertopal.API.request(**kwargs)
+
+        if output:
+            with open(Path(output).resolve(), 'wb') as file:
+                for chunk in response.iter_content(chunk_size=128):
+                    file.write(chunk)
+            return
+
+        if full_response:
+            sys.stdout.write(f"Status\t{response.status_code}\n\n")
+            sys.stdout.write("Response Headers\n")
+            for header_key, header_val in response.headers.items():
+                sys.stdout.write(f"{header_key}: {header_val}\n")
+            sys.stdout.write("\n")
+
+        sys.stdout.write(response.text)
+        sys.stdout.write("\n")
+
+    @classmethod
     def check_config(cls) -> None:
         """Show a warning on stdout if AppID and/or Token is not configured.
 
@@ -649,12 +681,81 @@ class Terminal:
             help="convert without writing to standard output"
         )
 
+        # Create the parser for the <api> command
+        parser_api = subparsers.add_parser(
+            "api",
+            usage="%(prog)s <endpoint> [<args>]",
+            help="Send requests to the Vertopal API",
+            description="Makes an authenticated HTTP request to the "
+                        "Vertopal API and prints the response.",
+        )
+        # Create [<args>] group for the <api> command
+        args_api = parser_api.add_argument_group("args")
+        # Add <api> args
+        parser_api.add_argument("endpoint", help="the endpoint to the API")
+        args_api.add_argument(
+            "-F",
+            "--field",
+            nargs="+",
+            type=str,
+            default=None,
+            metavar="<key=value>",
+            help="add a typed parameter in key=value format",
+        )
+        args_api.add_argument(
+            "-v",
+            "--version",
+            type=str,
+            metavar="<number>",
+            help="the version number of the API"
+        )
+        args_api.add_argument(
+            "-X",
+            "--method",
+            type=str.upper,
+            choices=(
+                "GET",
+                "OPTIONS",
+                "HEAD",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE"
+            ),
+            metavar="<string>",
+            default="POST",
+            help="the HTTP method for the request",
+        )
+        args_api.add_argument(
+            "-o",
+            "--output",
+            metavar="<file>",
+            help="write to file instead of stdout",
+        )
+        args_api.add_argument(
+            "-i",
+            "--include",
+            action="store_true",
+            help="include HTTP response status line and headers in the output",
+        )
+        args_api.add_argument(
+            "--app",
+            metavar="<app-id>",
+            help="the Application ID retrieved from vertopal.com"
+        )
+        args_api.add_argument(
+            "--token",
+            metavar="<token>",
+            help="the Security Token retrieved from vertopal.com"
+        )
+
         # Create the parser for the <config> command
         parser_config = subparsers.add_parser(
             "config",
             usage="%(prog)s [options] [<args>]",
             help="Configure global config file",
-            description="Set vertopal global options.")
+            description="Set vertopal global options.",
+        )
         # Create [<args>] group for the <config> command
         args_config = parser_config.add_argument_group("args")
         # Add <config> args

@@ -9,7 +9,12 @@ https://github.com/vertopal/vertopal-cli
 """
 
 import platform
-from typing import Dict
+from contextlib import ExitStack
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Dict, List, Optional
+
+import requests
 
 from vertopal import __version__
 
@@ -18,15 +23,87 @@ class Interface:
     """The parent :class:`Interface` class for the API.
 
     Attributes:
+        ENDPOINT (str): The endpoint URL of the Vertopal API.
         ASYNC (str): ASYNC mode strategy constant.
         SYNC (str): SYNC mode strategy constant.
     """
 
+    ENDPOINT: str = "https://api.vertopal.com"
     ASYNC: str = "async"
     SYNC: str = "sync"
     UA_CLI: str = "VertopalCLI"
     UA_LIB: str = "VertopalPythonLib"
     UA_PRODUCT: str = UA_LIB
+
+    @classmethod
+    def request( # pylint: disable=too-many-arguments
+        cls,
+        endpoint: str,
+        method: str,
+        app: str,
+        token: str,
+        field_params: Optional[List[str]] = None,
+        version: Optional[str] = None,
+    ) -> requests.Response:
+        """Makes an authenticated HTTP request to the Vertopal API endpoints.
+
+        Args:
+            endpoint (str): The endpoint without hostname and API version.
+            method (str): The HTTP method of the request.
+            app (str): Your App-ID.
+            token (str): Your Security-Token.
+            field_params (Optional[List[str]], optional): List of field
+                parameters which will be parsed into data and files.
+                Defaults to `None`.
+            version (Optional[str], optional): The API version number.
+                Defaults to `None`.
+
+        Returns:
+            requests.Response: :class:`Response <Response>` object.
+        """
+
+        if endpoint[0] != "/":
+            endpoint = f"/{endpoint}"
+        if version:
+            url = f"{Interface.ENDPOINT}/v{version}{endpoint}"
+        else:
+            url = f"{Interface.ENDPOINT}{endpoint}"
+
+        if endpoint in ("/upload/file", "/download/url/get"):
+            timeout = 300
+        else:
+            timeout = 30
+
+        field = cls.__parse_field_parameters(field_params, {"%app-id%": app})
+
+        if field.file:
+            with ExitStack() as stack:
+                files: List = []
+                for key, path in field.file.items():
+                    file = Path(path)
+                    files.append((
+                        key,
+                        (
+                            file.name,
+                            stack.enter_context(open(file.resolve(), "rb")),
+                        )
+                    ))
+                return requests.request(
+                    method,
+                    url,
+                    headers=cls._get_headers(token),
+                    data=field.data,
+                    files=files,
+                    timeout=timeout,
+                )
+
+        return requests.request(
+            method,
+            url,
+            headers=cls._get_headers(token),
+            data=field.data,
+            timeout=timeout,
+        )
 
     @classmethod
     def set_ua_product_name(cls, product: str) -> None:
@@ -85,7 +162,7 @@ class Interface:
         """Concatenate the token provided to build and return an HTTP header.
 
         Args:
-            token (str): Your Security-Token
+            token (str): Your Security-Token.
 
         Returns:
             Dict[str, str]: The HTTP header needed for API requests.
@@ -95,3 +172,61 @@ class Interface:
             "Authorization": f"Bearer {token}",
             "User-Agent": cls._get_user_agent(),
         }
+
+    @staticmethod
+    def __parse_field_parameters(
+        params: Optional[List[str]],
+        replace: Optional[Dict[str, str]] = None
+    ) -> SimpleNamespace:
+        """Parse field parameters into a pair of data and file properties.
+
+        Args:
+            params (Optional[List[str]]): List of field parameters.
+            replace (Optional[Dict[str, str]], optional): A dictionary
+                containing keys and values, replacing any key occurrences in the
+                parsed data values, to its appointed value. Defaults to `None`.
+
+        Returns:
+            SimpleNamespace: A SimpleNamespace instance containing `data` and
+                `file` properties, each one a pair of key/value dictionary.
+        """
+
+        def _replace(text):
+            for replace_from, replace_to in replace.items():
+                if replace_from and replace_to:
+                    return text.replace(replace_from, replace_to)
+            return text
+
+        data: Optional[Dict[str, str]] = None
+        file: Optional[Dict[str, str]] = None
+
+        if not params:
+            return SimpleNamespace(
+                data=data,
+                file=file,
+            )
+
+        for p in params:
+            if "=" in p:
+                # equal sign position
+                eqpos: int = p.index("=")
+                # check if the parameter is `file`
+                if len(p) > eqpos + 1 and p[eqpos + 1] == "@":
+                    pkey, pval = p.split("=@", 1)
+                    if pkey and pval:
+                        if not file:
+                            file = {}
+                        file[pkey] = pval
+                else:
+                    pkey, pval = p.split("=", 1)
+                    if pkey and pval:
+                        if replace:
+                            pval = _replace(pval)
+                        if not data:
+                            data = {}
+                        data[pkey] = pval
+
+        return SimpleNamespace(
+            data=data,
+            file=file,
+        )
