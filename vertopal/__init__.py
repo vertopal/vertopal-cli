@@ -11,7 +11,7 @@ https://github.com/vertopal/vertopal-cli
 __author__ = "Vertopal"
 __copyright__ = "Copyright (c) 2023 Vertopal"
 __license__ = "MIT License"
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 
 from vertopal.api.v1 import API
 from vertopal.api.converter import Converter
