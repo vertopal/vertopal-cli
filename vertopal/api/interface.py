@@ -26,11 +26,15 @@ class Interface:
         ENDPOINT (str): The endpoint URL of the Vertopal API.
         ASYNC (str): ASYNC mode strategy constant.
         SYNC (str): SYNC mode strategy constant.
+        INPUTS (str): INPUTS mode sublist constant.
+        OUTPUTS (str): OUTPUTS mode sublist constant.
     """
 
     ENDPOINT: str = "https://api.vertopal.com"
     ASYNC: str = "async"
     SYNC: str = "sync"
+    INPUTS: str = "inputs"
+    OUTPUTS: str = "outputs"
     UA_CLI: str = "VertopalCLI"
     UA_LIB: str = "VertopalPythonLib"
     UA_PRODUCT: str = UA_LIB

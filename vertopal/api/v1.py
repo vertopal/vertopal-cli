@@ -231,3 +231,133 @@ class API(Interface):
             timeout=timeout,
         )
         return response
+
+    @classmethod
+    def format_get(
+        cls,
+        app: str,
+        token: str,
+        format_: str,
+    ) -> requests.Response:
+        """Send a format/get request to the Vertopal API endpoint.
+
+        Get the properties of a specific format.
+
+        Args:
+            app (str): Your App-ID.
+            token (str): Your Security-Token.
+            format_ (str): The specific `format[-type]` you want to get
+                its properties.
+
+        Returns:
+            requests.Response: :class:`Response <Response>` object.
+        """
+
+        response = requests.request(
+            "POST",
+            cls.ENDPOINT + "/format/get",
+            headers=cls._get_headers(token),
+            data={
+                'data': '{'
+                    f'"app": "{app}",'
+                    '"parameters": {'
+                        f'"format": "{format_}"'
+                    '}'
+                '}'
+            },
+            timeout=30,
+        )
+        return response
+
+    @classmethod
+    def convert_graph(
+        cls,
+        app: str,
+        token: str,
+        input_: str,
+        output: str,
+    ) -> requests.Response:
+        """Send a convert/graph request to the Vertopal API endpoint.
+
+        Get the relation between the input format and the output format
+        for file conversion.
+
+        Args:
+            app (str): Your App-ID.
+            token (str): Your Security-Token.
+            input_ (str): The input `format[-type]`.
+            output (str): The output `format[-type]`.
+
+        Returns:
+            requests.Response: :class:`Response <Response>` object.
+        """
+
+        response = requests.request(
+            "POST",
+            cls.ENDPOINT + "/convert/graph",
+            headers=cls._get_headers(token),
+            data={
+                'data': '{'
+                    f'"app": "{app}",'
+                    '"parameters": {'
+                        f'"input": "{input_}",'
+                        f'"output": "{output}"'
+                    '}'
+                '}'
+            },
+            timeout=30,
+        )
+        return response
+
+    @classmethod
+    def convert_formats(
+        cls,
+        app: str,
+        token: str,
+        sublist: str,
+        format_: Optional[str] = None,
+    ) -> requests.Response:
+        """Send a convert/formats request to the Vertopal API endpoint.
+
+        Get supported input or output formats for file conversion.
+
+        Args:
+            app (str): Your App-ID.
+            token (str): Your Security-Token.
+            sublist (str): Selects supported formats based on whether they are
+                inputs or outputs. Valid values are `Interface.INPUTS`
+                and `Interface.OUTPUTS`.
+            format_ (str, optional): The specific `format[-type]` you want to
+                get its supported input or output formats. Defaults to `None`.
+
+        Raises:
+            ValueError: If the `sublist` has an invalid value.
+
+        Returns:
+            requests.Response: :class:`Response <Response>` object.
+        """
+
+        if sublist not in (cls.INPUTS, cls.OUTPUTS):
+            raise ValueError('sublist must be either "inputs" or "outputs"')
+
+        if format_:
+            data_format = f',"format": "{format_}"'
+        else:
+            data_format = ""
+
+        response = requests.request(
+            "POST",
+            cls.ENDPOINT + "/convert/formats",
+            headers=cls._get_headers(token),
+            data={
+                'data': '{'
+                    f'"app": "{app}",'
+                    '"parameters": {'
+                        f'"sublist": "{sublist}"'
+                        f'{data_format}'
+                    '}'
+                '}'
+            },
+            timeout=30,
+        )
+        return response
