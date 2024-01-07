@@ -10,6 +10,7 @@ https://github.com/vertopal/vertopal-cli
 
 import sys
 import argparse
+from json import loads as json_loads, dumps as json_dumps
 from time import sleep
 from pathlib import Path
 from types import SimpleNamespace
@@ -155,6 +156,7 @@ class Terminal:
         cls,
         full_response: bool,
         output: Optional[str] = None,
+        beautify=False,
         **kwargs: Any,
     ) -> None:
         """Send requests to the Vertopal API and write its response to stdout.
@@ -179,7 +181,10 @@ class Terminal:
                 sys.stdout.write(f"{header_key}: {header_val}\n")
             sys.stdout.write("\n")
 
-        sys.stdout.write(response.text)
+        if beautify:
+            sys.stdout.write(json_dumps(json_loads(response.text), indent=2))
+        else:
+            sys.stdout.write(response.text)
         sys.stdout.write("\n")
 
     @classmethod
@@ -737,6 +742,11 @@ class Terminal:
             "--include",
             action="store_true",
             help="include HTTP response status line and headers in the output",
+        )
+        args_api.add_argument(
+            "--beautify",
+            action="store_true",
+            help="create human readable output (only in stdout)",
         )
         args_api.add_argument(
             "--app",

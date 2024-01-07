@@ -81,6 +81,7 @@ def main() -> None:
             version=args.version,
             full_response=args.include,
             output=args.output,
+            beautify=args.beautify,
         )
 
 
