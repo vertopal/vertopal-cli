@@ -37,7 +37,11 @@ dependencies = [
 [project.scripts]
 vertopal = "vertopal.vertopal:main"
 
-[tool.setuptools]
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [build-system]
 requires = ["setuptools>=43.0.0", "wheel"]

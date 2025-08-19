@@ -16,7 +16,7 @@ from typing import Optional, Callable, Union, Tuple, Dict, Any
 from requests import exceptions as RequestsExc
 
 from vertopal.api.v1 import API
-from vertopal.api import exception
+from vertopal import exceptions
 
 
 class Converter:
@@ -117,7 +117,7 @@ class Converter:
             },
         )
         if convert_response["entity"]["status"] != "running":
-            raise exception.EntityStatusNotRunningError
+            raise exceptions.EntityStatusNotRunningError
         self.__convert_connector = convert_response["entity"]["id"]
 
     def wait(self, sleep_pattern: Tuple[int] = (10, 20, 30, 60)) -> None:
@@ -202,13 +202,13 @@ class Converter:
                 url=False,
             )
         except RequestsExc.ConnectionError as exc:
-            raise exception.NetworkConnectionError from exc
+            raise exceptions.NetworkConnectionError from exc
         except Exception as error:
-            raise exception.OtherError from error
+            raise exceptions.OtherError from error
 
         # if http response code is 4xx or 5xx
         if (response.status_code % 1000) // 100 in (4, 5):
-            raise exception.HTTPResponseError
+            raise exceptions.HTTPResponseError
 
         if filename:
             output_file = Path(filename)
@@ -219,7 +219,7 @@ class Converter:
                 for chunk in response.iter_content(chunk_size=128):
                     file.write(chunk)
         except Exception as error:
-            raise exception.OutputWriteError from error
+            raise exceptions.OutputWriteError from error
 
         return output_file.resolve()
 
@@ -306,20 +306,21 @@ class Converter:
         try:
             response = func(**kwargs)
         except FileNotFoundError as exc:
-            raise exception.InputNotFoundError from exc
+            raise exceptions.InputNotFoundError from exc
         except RequestsExc.ConnectionError as exc:
-            raise exception.NetworkConnectionError from exc
+            raise exceptions.NetworkConnectionError from exc
         except Exception as error:
-            raise exception.OtherError from error
+            raise exceptions.OtherError from error
 
         try:
             json = response.json()
         except RequestsExc.InvalidJSONError as exc:
-            raise exception.InvalidJSONResponseError from exc
+            raise exceptions.InvalidJSONResponseError from exc
         except Exception as error:
-            raise exception.OtherError from error
+            raise exceptions.OtherError from error
 
         code = None
+        message = ""
         if "code" in json:
             code = json["code"]
             message = json["message"] if "message" in json else ""
@@ -332,12 +333,12 @@ class Converter:
             else:
                 message = ""
         if code:
-            if code in exception.error_codes:
-                raise exception.error_codes[code](message)
-            raise exception.APIError
+            if code in exceptions.error_codes:
+                raise exceptions.error_codes[code](message)
+            raise exceptions.APIError
         # if http response code is 4xx or 5xx
         if (response.status_code % 1000) // 100 in (4, 5):
-            raise exception.HTTPResponseError
+            raise exceptions.HTTPResponseError
 
         return json
 
