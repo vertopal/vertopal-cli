@@ -4,7 +4,7 @@ version = "1.1.0"
 
 description = "Convert your files in terminal using Vertopal API"
 readme = "README.md"
-requires-python = ">=3.7, <4"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 
 keywords = ["convert", "file", "vertopal", "api", "converter"]
@@ -15,7 +15,7 @@ authors = [
 
 classifiers = [
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.9",
   "Intended Audience :: Developers",
   "Intended Audience :: End Users/Desktop",
   "Intended Audience :: Information Technology",

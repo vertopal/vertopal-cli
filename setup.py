@@ -28,7 +28,7 @@ setup(
     packages=find_packages(where="src"),
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.9",
         "Intended Audience :: Developers",
         "Intended Audience :: End Users/Desktop",
         "Intended Audience :: Information Technology",
@@ -58,5 +58,5 @@ setup(
     install_requires=[
         "requests>=2.28.2",
     ],
-    python_requires=">=3.7, <4",
+    python_requires=">=3.9",
 )
