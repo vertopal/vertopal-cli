@@ -1,350 +1,308 @@
+# -*- coding: utf-8 -*-
+# SPDX-License-Identifier: MIT
+#
+# Copyright (c) 2023–2025 Vertopal - https://www.vertopal.com
+# Repository: https://github.com/vertopal/vertopal-cli
+# Issues: https://github.com/vertopal/vertopal-cli/issues
+#
+# Description:
+#   The implementation composes request payloads and delegates HTTP
+#   transport to the API client. It intentionally keeps conversion
+#   orchestration local to the client process so calling code can
+#   synchronously wait for completion or stream outputs on demand.
+
 """
-vertopal-cli
-~~~~~~~~~~~~
+Helpers for file conversion using the Vertopal API.
 
-:copyright: (c) 2023 Vertopal - https://www.vertopal.com
-:license: MIT, see LICENSE for more details.
+This module provides the `Converter` convenience class and an internal
+`_Conversion` helper which orchestrates the typical upload, convert,
+poll, and download workflow against the Vertopal v1 API.
 
-https://github.com/vertopal/vertopal-cli
+The public `Converter` accepts objects that implement the `Readable`
+and `Writable` protocols and returns a lightweight `_Conversion`
+controller that can be waited on, queried for status, and used to stream
+the converted result to a sink.
 """
 
-from pathlib import Path
+from dataclasses import dataclass
 from time import sleep
 from types import SimpleNamespace
-from typing import Optional, Callable, Union, Tuple, Dict, Any
+from typing import Callable, cast, Optional, Tuple
 
-from requests import exceptions as RequestsExc
-
+from vertopal import settings
+from vertopal.api.credential import Credential
 from vertopal.api.v1 import API
-from vertopal import exceptions
+import vertopal.exceptions as vex
+from vertopal.enums import InterfaceStrategyMode
+from vertopal.io.protocols import PathWritable, Readable, Writable
+from vertopal.utils.misc import _canonicalize_format
+
+# Define public names for external usage
+__all__ = [
+    "Converter",
+]
 
 
-class Converter:
-    """Provides different methods to simplify a file conversion.
+@dataclass(frozen=True, slots=True)
+class _InputSpec:
+    """Holding specifications of an input file."""
+    source: Readable
+    format: Optional[str] = None
 
-    Usage:
+    def __post_init__(self):
+        object.__setattr__(self, "format", _canonicalize_format(self.format))
 
-        >>> from vertopal import Converter
-        >>> pdf2docx = Converter(
-        ...     "document.pdf",
-        ...     app="Your-App-ID",
-        ...     token="Your-Security-Token",
-        ... )
-        >>> pdf2docx.convert("docx")
-        >>> pdf2docx.wait()
-        >>> if pdf2docx.is_converted():
-        ...     pdf2docx.download()
+
+@dataclass(frozen=True, slots=True)
+class _OutputSpec:
+    """Holding specifications of an output file."""
+    sink: Writable
+    format: str
+
+    def __post_init__(self):
+        object.__setattr__(self, "format", _canonicalize_format(self.format))
+
+
+class _Conversion:
+    """
+    Orchestrates a single file conversion workflow.
+
+    This internal helper handles uploading the input, requesting a
+    conversion, polling task status, and exposing helpers to download
+    the resulting output. It is returned by `Converter.convert`
+    and intended for short-lived use.
     """
 
     def __init__(
         self,
-        input_file: Union[str, Path],
-        app: str,
-        token: str
-    ) -> None:
-        """Converter class initializer.
-
-        Args:
-            input_file (str, Path): The input file name or path.
-            app (str): Your App-ID.
-            token (str): Your Security-Token.
-        """
-
-        # validate method parameters
-        if not isinstance(input_file, (str, Path)):
-            raise TypeError("input_file must be <str> or <Path>.")
-        if not isinstance(app, str):
-            raise TypeError("app must be <str>.")
-        if not isinstance(token, str):
-            raise TypeError("token must be <str>.")
-
-        self.__input_file = input_file
-        self.__app = app
-        self.__token = token
-        self.__convert_connector = None
-        self.__convert_status = None
-        self.__vcredits = None
-
-    def convert(
-        self,
+        client: API,
+        readable: Readable,
+        writable: Writable,
+        *,
         output_format: str,
-        input_format: Optional[str] = None
+        input_format: Optional[str] = None,
+    ):
+        """
+        Create and start a conversion operation.
+
+        Args:
+            client (API): API client used to perform requests.
+            readable (Readable): Source implementing the readable
+                protocol for the input data.
+            writable (Writable): Destination implementing the writable
+                protocol for the converted data.
+            output_format (str): Target output format[-type] identifier.
+            input_format (Optional[str]): Optional input format[-type]
+                hint.
+        """
+        self.__input = _InputSpec(readable, input_format)
+        self.__output = _OutputSpec(writable, output_format)
+        self.__client = client
+        self.__convert_connector: Optional[str] = None
+        self.__convert_status: Optional[str] = None
+        self.__credits: Optional[int] = None
+
+        self.__convert()
+
+    def wait(
+        self,
+        poll_intervals: Tuple[int, ...] = settings.SLEEP_PATTERN,
+        sleep_func: Callable[[float], None] = sleep,
     ) -> None:
-        """Start converting the input file to the desired output format.
+        """
+        Poll the conversion task until it completes.
 
         Args:
-            output_format (str): The output `format[-type]`.
-            input_format (str, optional): The input `format[-type]`. If not
-                specified, the `format[-type]` of the input file will be 
-                considered based on its extension and type. Defaults to `None`.
-
-        Raises:
-            EntityStatusNotRunningError: If the entity status is not running.
-        
-        Returns:
-            None
+            poll_intervals (Tuple[int, ...]): Sequence of sleep
+                durations in seconds used between polls. Defaults to
+                `vertopal.settings.SLEEP_PATTERN`.
+            sleep_func (Callable[[float], None]): Callable used to
+                sleep between polls. Defaults to `sleep` from the
+                standard library.
         """
-
-        # validate method parameters
-        if not isinstance(output_format, str):
-            raise TypeError("output_format must be <str>.")
-        if input_format and not isinstance(input_format, (str)):
-            raise TypeError("input_format must be <str>")
-
-        filepath = Path(self.__input_file).resolve()
-        filename = filepath.name
-
-        upload_response = self._call_task(
-            API.upload,
-            {
-                "filename": filename,
-                "filepath": filepath,
-                "app": self.__app,
-                "token": self.__token,
-            },
-        )
-        upload_connector = upload_response["result"]["output"]["connector"]
-
-        convert_response = self._call_task(
-            API.convert,
-            {
-                "output_format": output_format,
-                "app": self.__app,
-                "token": self.__token,
-                "connector": upload_connector,
-                "input_format": input_format,
-                "mode": API.ASYNC,
-            },
-        )
-        if convert_response["entity"]["status"] != "running":
-            raise exceptions.EntityStatusNotRunningError
-        self.__convert_connector = convert_response["entity"]["id"]
-
-    def wait(self, sleep_pattern: Tuple[int] = (10, 20, 30, 60)) -> None:
-        """Wait for the convert to complete.
-
-        Args:
-            sleep_pattern (Tuple[int], optional): Sleeps seconds to delay
-                between each check for the completion
-                of the convert. Defaults to `(10, 20, 30, 60)`.
-        
-        Returns:
-            None
-        """
-
-        # vaidate method parameters
-        if not isinstance(sleep_pattern, tuple):
-            raise TypeError("sleep_pattern must be <tuple>.")
-        if not all(tuple(isinstance(i, int) for i in sleep_pattern)):
-            raise ValueError("sleep_pattern must be <tuple> of <int>s.")
-        if min(sleep_pattern) < 10:
-            raise ValueError("sleep_pattern min value must be 10 or greater.")
-
         sleep_step = 0
-        while not self.is_completed():
-            sleep(sleep_pattern[sleep_step])
-            if sleep_step < len(sleep_pattern) - 1:
+        while not self.done():
+            sleep_func(poll_intervals[sleep_step])
+            if sleep_step < len(poll_intervals) - 1:
                 sleep_step += 1
 
-    def is_completed(self) -> bool:
-        """Check if the convert task is completed or not.
+    def done(self) -> bool:
+        """
+        Return `True` when the conversion task has reached completion.
 
         Returns:
-            bool: `True` if the convert task is completed, otherwise `False`.
+            bool: `True` if the underlying task is completed. Otherwise
+            `False`.
         """
-
-        if self._convert_task_status().task == "completed":
+        if self.__get_convert_task_status().task == "completed":
             return True
         return False
 
-    def is_converted(self) -> bool:
-        """Check if the result of the convert task is successful or not.
+    def successful(self):
+        """
+        Return `True` when the conversion result indicates success.
 
         Returns:
-            bool: `True` if the convert is successful, otherwise `False`.
+            bool: `True` if the conversion completed successfully.
+            Otherwise `False`.
         """
-
         if self.__convert_status == "successful":
             return True
         return False
 
-    def download(self, filename: Optional[str] = None) -> Path:
-        """Download the converted file and write it to the disk.
+    def download(self, *, use_server_filename: bool = False) -> None:
+        """
+        Download the converted file into the configured sink.
 
         Args:
-            filename (str, optional): Output file name or path
-                to write to the disk. If set to `None`, the filename
-                received from the API server will be used. Defaults to `None`.
-
-        Raises:
-            NetworkConnectionError: If there is a problem in connecting
-                to the network.
-            OtherError: If an unknown/undefined error occurs.
-            HTTPResponseError: If the server returns an HTTP
-                response status of 4xx or 5xx.
-            OutputWriteError: If there is a problem in writing the downloaded
-                output file to the disk.
-
-        Returns:
-            Path: The absolute path of the downloaded file.
+            use_server_filename (bool): If `True` and the sink
+                implements `PathWritable`, set the sink path to the
+                server-provided filename before downloading.
         """
+        download_url = self.__download_url()
+        server_filename = download_url.filename
 
-        # validate method parameters
-        if filename and not isinstance(filename, str):
-            raise TypeError("filename must be <str>.")
+        if (
+            use_server_filename
+            and isinstance(self.__output.sink, PathWritable)
+        ):
+            self.__output.sink.path = server_filename
 
-        download_url = self._download_url()
-        try:
-            response = API.download(
-                app=self.__app,
-                token=self.__token,
-                connector=download_url.connector,
-                url=False,
-            )
-        except RequestsExc.ConnectionError as exc:
-            raise exceptions.NetworkConnectionError from exc
-        except Exception as error:
-            raise exceptions.OtherError from error
-
-        # if http response code is 4xx or 5xx
-        if (response.status_code % 1000) // 100 in (4, 5):
-            raise exceptions.HTTPResponseError
-
-        if filename:
-            output_file = Path(filename)
-        else:
-            output_file = Path(download_url.filename)
-        try:
-            with open(output_file, 'wb') as file:
-                for chunk in response.iter_content(chunk_size=128):
-                    file.write(chunk)
-        except Exception as error:
-            raise exceptions.OutputWriteError from error
-
-        return output_file.resolve()
-
-    def _download_url(self) -> SimpleNamespace:
-        """Send a download request and get the download connector and filename.
-
-        Returns:
-            SimpleNamespace: A SimpleNamespace instance with
-                `connector` (download connector), and
-                `filename` (download filename).
-        """
-
-        json = self._call_task(
-            API.download,
-            {
-                "app": self.__app,
-                "token": self.__token,
-                "connector": self.__convert_connector,
-                "url": True,
-            },
+        self.__client.download_url_get(
+            writable=self.__output.sink,
+            connector=download_url.connector,
         )
+
+    def __download_url(self) -> SimpleNamespace:
+        response = self.__client.download_url(
+            connector=cast(str, self.__convert_connector),
+        )
+
         return SimpleNamespace(
-            connector=json["result"]["output"]["connector"],
-            filename=json["result"]["output"]["name"],
+            connector=response.nested.result.output.connector,
+            filename=response.nested.result.output.name,
         )
 
-    def _convert_task_status(self) -> SimpleNamespace:
-        """Run a convert task response request using Vertopal API.
-
-        Returns:
-            SimpleNamespace: A SimpleNamespace instance with
-                `task` (task status), `vcredits` (used vCredits),
-                and `convert` (convert status) properties.
-        """
-
-        json = self._call_task(
-            API.task_response,
-            {
-                "app": self.__app,
-                "token": self.__token,
-                "connector": self.__convert_connector,
-            },
+    def __get_convert_task_status(self) -> SimpleNamespace:
+        response = self.__client.task_response(
+            connector=cast(str, self.__convert_connector),
         )
 
-        result = json["result"]["output"]["result"]
-        if result:
-            self.__convert_status = result["output"]["status"]
-            self.__vcredits = json["result"]["output"]["entity"]["vcredits"]
+        result_output = response.nested.result.output
+        # If result.output.result is present, update status and credits
+        if result_output.result:
+            self.__convert_status = result_output.result.output.status
+            self.__credits = result_output.entity.vcredits
         else:
             self.__convert_status = None
 
         return SimpleNamespace(
-            task=json["result"]["output"]["entity"]["status"],
-            vcredits=self.__vcredits,
+            task=response.nested.result.output.entity.status,
+            credits=self.__credits,
             convert=self.__convert_status,
         )
 
-    def _call_task(
-        self,
-        func: Callable[[Any], object],
-        kwargs: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Call an API task.
+    def __convert(self) -> None:
+        upload_response = self.__client.upload_file(
+            readable=self.__input.source,
+        )
+        upload_connector = upload_response.nested.result.output.connector
 
-        Args:
-            func (Callable[[Any], object]): The API task callable.
-            kwargs (Dict[str, Any]): Keyword arguments of the callable `func`.
-
-        Raises:
-            InputNotFoundError: If the input file not exists.
-            NetworkConnectionError: If there is a problem in connecting
-                to the network.
-            OtherError: If an unknown/undefined error occurs.
-            InvalidJSONResponseError: If the HTTP response is invalid
-                and cannot be decoded to JSON.
-            HTTPResponseError: If the server returns an HTTP
-                response status of 4xx or 5xx.
-            APIError: If there is an API-level error code in server response.
-
-        Returns:
-            Dict[str, Any]: JSON response of the API cast to Python dictionary.
-        """
-
-        try:
-            response = func(**kwargs)
-        except FileNotFoundError as exc:
-            raise exceptions.InputNotFoundError from exc
-        except RequestsExc.ConnectionError as exc:
-            raise exceptions.NetworkConnectionError from exc
-        except Exception as error:
-            raise exceptions.OtherError from error
-
-        try:
-            json = response.json()
-        except RequestsExc.InvalidJSONError as exc:
-            raise exceptions.InvalidJSONResponseError from exc
-        except Exception as error:
-            raise exceptions.OtherError from error
-
-        code = None
-        message = ""
-        if "code" in json:
-            code = json["code"]
-            message = json["message"] if "message" in json else ""
-        if ("result" in json
-            and "error" in json["result"]
-            and "code" in json["result"]["error"]):
-            code = json["result"]["error"]["code"]
-            if "message" in json["result"]["error"]:
-                message = json["result"]["error"]["message"]
-            else:
-                message = ""
-        if code:
-            if code in exceptions.error_codes:
-                raise exceptions.error_codes[code](message)
-            raise exceptions.APIError
-        # if http response code is 4xx or 5xx
-        if (response.status_code % 1000) // 100 in (4, 5):
-            raise exceptions.HTTPResponseError
-
-        return json
+        convert_response = self.__client.convert_file(
+            connector=upload_connector,
+            output_format=cast(str, self.__output.format),
+            input_format=self.__input.format,
+            mode=InterfaceStrategyMode.ASYNC,
+        )
+        if convert_response.nested.entity.status != "running":
+            raise vex.EntityStatusNotRunningError
+        self.__convert_connector = convert_response.nested.entity.id
 
     @property
-    def vcredits(self) -> Union[int, None]:
-        """Number of total vCredits spent for the conversion.
+    def credits_used(self) -> Optional[int]:
         """
+        Return the credits consumed for this conversion, or `None` when
+        not yet available.
+        """
+        if self.__credits is None:
+            self.__credits = self.__get_convert_task_status().credits
+        return self.__credits
 
-        return self.__vcredits
+
+class Converter:
+    """
+    Convenience facade for performing file conversions.
+
+    The `Converter` class provides a simple entry point to convert files
+    by accepting `Readable` and `Writable` protocol objects and
+    returning an active `_Conversion` controller.
+
+    Example:
+
+        >>> from vertopal.api.converter import Converter
+        >>> from vertopal.io import FileInput, FileOutput
+        >>> source = FileInput("./input.md")
+        >>> sink = FileOutput("./output.pdf")
+        >>> converter = Converter()
+        >>> conversion = converter.convert(
+        ...     readable=source,
+        ...     writable=sink,
+        ...     output_format="pdf",
+        ... )
+        >>> conversion.wait()
+        >>> if conversion.successful():
+        ...     conversion.download()
+        ...     print(conversion.credits_used, "credit(s) used.")
+        ... 
+        '1 credit(s) used.'
+    """
+
+    def __init__(
+        self,
+        credential: Optional[Credential] = None,
+    ):
+        """
+        Create a new Converter.
+
+        Args:
+            credential (Optional[Credential]): A `Credential` instance
+                containing application id and token, or `None` to use
+                configuration-provided credentials.
+        """
+        self.__client = API(credential=credential)
+
+    def convert(
+        self,
+        readable: Readable,
+        writable: Writable,
+        output_format: str,
+        *,
+        input_format: Optional[str] = None,
+    ) -> _Conversion:
+        """
+        Start a conversion and return its controller.
+
+        Args:
+            readable (Readable): Source implementing the readable
+                protocol for the input data.
+            writable (Writable): Destination implementing the writable
+                protocol for the converted data.
+            output_format (str): Target output format[-type] identifier.
+            input_format (Optional[str]): Optional input format[-type]
+                hint.
+
+        Returns:
+            _Conversion: Controller managing the started conversion.
+        """
+        conversion = _Conversion(
+            client=self.__client,
+            readable=readable,
+            writable=writable,
+            output_format=output_format,
+            input_format=input_format,
+        )
+        return conversion
+
+    def close(self) -> None:
+        """Close the underlying API client's connection."""
+        self.__client.close()
