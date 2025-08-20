@@ -1,84 +1,179 @@
+# -*- coding: utf-8 -*-
+# SPDX-License-Identifier: MIT
+#
+# Copyright (c) 2023–2025 Vertopal - https://www.vertopal.com
+# Repository: https://github.com/vertopal/vertopal-cli
+# Issues: https://github.com/vertopal/vertopal-cli/issues
+#
+# Description:
+#   Internal API interface for managing Vertopal service requests,
+#   including request construction, authentication, retries,
+#   file uploads, and consistent HTTP session handling. Provides a base
+#   wrapper around `requests` with configuration-driven settings and
+#   convenience utilities.
+
 """
-vertopal-cli
-~~~~~~~~~~~~
+Internal API interface for managing Vertopal service requests.
 
-:copyright: (c) 2023 Vertopal - https://www.vertopal.com
-:license: MIT, see LICENSE for more details.
-
-https://github.com/vertopal/vertopal-cli
+This module defines the internal `_Interface` class which encapsulates
+HTTP communication with Vertopal's REST API. Responsibilities include
+request construction, authentication, retry/backoff semantics, file
+uploads, and consistent HTTP session handling. The implementation
+produces `_CustomResponse` wrappers for higher-level clients to use.
 """
 
-import platform
 from contextlib import ExitStack
 from pathlib import Path
+import platform
+from time import sleep
 from types import SimpleNamespace
 from typing import Dict, List, Optional
 
 import requests
 
-from vertopal import __version__
+from vertopal import settings, __version__
+from vertopal.api.credential import Credential
+from vertopal.api.response import _CustomResponse
+import vertopal.exceptions as vex
+from vertopal.utils.config import _Config
+from vertopal.utils.exception_handler import ExceptionHandler
+
+# No public names in this file
+__all__ = []
 
 
-class Interface:
-    """The parent :class:`Interface` class for the API.
+class _Interface:
+    """
+    Internal HTTP transport layer for the Vertopal API.
 
-    Attributes:
-        ENDPOINT (str): The endpoint URL of the Vertopal API.
-        ASYNC (str): ASYNC mode strategy constant.
-        SYNC (str): SYNC mode strategy constant.
-        INPUTS (str): INPUTS mode sublist constant.
-        OUTPUTS (str): OUTPUTS mode sublist constant.
+    The `_Interface` class encapsulates low-level HTTP concerns such as
+    header construction, retries, JSON validation, file uploads, and
+    session lifecycle management. Higher-level API helpers compose
+    payloads and call into this class for transport and response
+    normalization.
     """
 
-    ENDPOINT: str = "https://api.vertopal.com"
-    ASYNC: str = "async"
-    SYNC: str = "sync"
-    INPUTS: str = "inputs"
-    OUTPUTS: str = "outputs"
-    UA_CLI: str = "VertopalCLI"
-    UA_LIB: str = "VertopalPythonLib"
-    UA_PRODUCT: str = UA_LIB
+    def __init__(
+        self,
+        credential: Optional[Credential] = None,
+    ):
+        """
+        Initialize the API interface.
 
-    @classmethod
-    def request( # pylint: disable=too-many-arguments
-        cls,
+        Args:
+            credential (Optional[Credential]): Optional credential
+                instance. If not provided, credentials are loaded from
+                configuration.
+        """
+        self._config: _Config = _Config()
+        self._user_agent_product = settings.USER_AGENT_PRODUCT_LIB
+
+        if not credential:
+            self._credential = Credential(
+                app=self._config.get("api", "app"),
+                token=self._config.get("api", "token"),
+            )
+        else:
+            self._credential = credential
+
+        self._session = requests.Session()
+        self._session.headers.update(self._get_headers())
+
+        self._version: Optional[float] = None
+
+    def send_request(
+        self,
+        path: str,
+        method: str = "POST",
+        **kwargs,
+    ) -> _CustomResponse:
+        """
+        Send an HTTP request with retry and JSON validation.
+
+        Args:
+            path (str): API endpoint path relative to the base endpoint.
+            method (str): HTTP method to use. Defaults to `"POST"`.
+            **kwargs: Forwarded to `requests` (for example, `data`,
+                `files`, or `timeout`).
+
+        Returns:
+            _CustomResponse: Wrapped HTTP response with convenience
+            accessors.
+
+        Raises:
+            vex.InvalidJSONResponseError: When the response body is
+                not valid JSON for endpoints that expect JSON.
+            vex.NetworkConnectionError: When all retry attempts fail.
+        """
+        retries = self._config.get("connection_settings", "retries", cast=int)
+        url = f"{self.endpoint}{path}"
+
+        for attempt in range(1, retries + 1):
+            try:
+                response = self._session.request(method, url, **kwargs)
+
+                # Only validate JSON if not downloading binary content
+                if path not in ("/download/url/get", ):
+                    ExceptionHandler.raise_for_response(response.json())
+
+                return _CustomResponse(response)
+
+            except requests.exceptions.JSONDecodeError as e:
+                raise vex.InvalidJSONResponseError(e)
+
+            except requests.RequestException as e:
+                if attempt < retries:
+                    # Exponential backoff between retries
+                    sleep(2 ** attempt)
+                else:
+                    raise vex.NetworkConnectionError(
+                        f"All {retries} retries failed! Error: {e}"
+                    ) from e
+
+        # If somehow the loop completes without returning or raising
+        raise vex.NetworkConnectionError("Request failed without exception.")
+
+    def request(
+        self,
         endpoint: str,
         method: str,
-        app: str,
-        token: str,
         field_params: Optional[List[str]] = None,
         version: Optional[str] = None,
     ) -> requests.Response:
-        """Makes an authenticated HTTP request to the Vertopal API endpoints.
+        """
+        Build and send a single HTTP request using the low-level
+        requests API.
 
         Args:
-            endpoint (str): The endpoint without hostname and API version.
-            method (str): The HTTP method of the request.
-            app (str): Your App-ID.
-            token (str): Your Security-Token.
-            field_params (Optional[List[str]], optional): List of field
-                parameters which will be parsed into data and files.
-                Defaults to `None`.
-            version (Optional[str], optional): The API version number.
-                Defaults to `None`.
+            endpoint (str): API endpoint path, with or without a
+                leading slash.
+            method (str): HTTP method to use, for example `"GET"` or
+                `"POST"`.
+            field_params (Optional[List[str]]): Optional list of
+                field assignments in the form `key=value` or
+                `key=@/path/to/file` for file uploads.
+            version (Optional[str]): Optional API version string to
+                include in the constructed path.
 
         Returns:
-            requests.Response: :class:`Response <Response>` object.
+            requests.Response: Raw `requests` response object.
         """
-
         if endpoint[0] != "/":
             endpoint = f"/{endpoint}"
         if version:
-            url = f"{Interface.ENDPOINT}/v{version}{endpoint}"
+            url = f"{self.endpoint}/v{version}{endpoint}"
         else:
-            url = f"{Interface.ENDPOINT}{endpoint}"
+            url = f"{self.endpoint}{endpoint}"
 
         if endpoint in ("/upload/file", "/download/url/get"):
-            timeout = 300
+            timeout = self.long_timeout
         else:
-            timeout = 30
+            timeout = self.default_timeout
 
-        field = cls.__parse_field_parameters(field_params, {"%app-id%": app})
+        field = self.__parse_field_parameters(
+            field_params,
+            {"%app-id%": self._credential.app},
+        )
 
         if field.file:
             with ExitStack() as stack:
@@ -95,7 +190,7 @@ class Interface:
                 return requests.request(
                     method,
                     url,
-                    headers=cls._get_headers(token),
+                    headers=self._get_headers(),
                     data=field.data,
                     files=files,
                     timeout=timeout,
@@ -104,35 +199,20 @@ class Interface:
         return requests.request(
             method,
             url,
-            headers=cls._get_headers(token),
+            headers=self._get_headers(),
             data=field.data,
             timeout=timeout,
         )
 
-    @classmethod
-    def set_ua_product_name(cls, product: str) -> None:
-        """Set User-Agent product name.
-
-        Args:
-            product (str): User-Agent product name.
-
-        Raises:
-            ValueError: If the invalid product name is passed.
+    def _get_user_agent(self) -> str:
         """
-
-        if product not in (cls.UA_CLI, cls.UA_LIB):
-            raise ValueError("product is not a valid name.")
-        cls.UA_PRODUCT = product
-
-    @classmethod
-    def _get_user_agent(cls) -> str:
-        """Generate User-Agent string for HTTP request header.
+        Return a formatted User-Agent string including platform
+        details.
 
         Returns:
-            str: User-Agent string.
+            str: Fully formatted User-Agent string.
         """
-
-        product: str = cls.UA_PRODUCT
+        product: str = self.user_agent_product
         product_version: str = __version__
         platform_release: str = platform.release()
         platform_machine: str = platform.machine()
@@ -161,20 +241,17 @@ class Interface:
         user_agent: str = f"{product}/{product_version} ({platform_full})"
         return user_agent
 
-    @classmethod
-    def _get_headers(cls, token: str) -> Dict[str, str]:
-        """Concatenate the token provided to build and return an HTTP header.
-
-        Args:
-            token (str): Your Security-Token.
+    def _get_headers(self) -> Dict[str, str]:
+        """
+        Build standard headers for API requests.
 
         Returns:
-            Dict[str, str]: The HTTP header needed for API requests.
+            Dict[str, str]: Headers containing `Authorization` and
+                `User-Agent`.
         """
-
         return {
-            "Authorization": f"Bearer {token}",
-            "User-Agent": cls._get_user_agent(),
+            "Authorization": f"Bearer {self._credential.token}",
+            "User-Agent": self._get_user_agent(),
         }
 
     @staticmethod
@@ -182,21 +259,35 @@ class Interface:
         params: Optional[List[str]],
         replace: Optional[Dict[str, str]] = None
     ) -> SimpleNamespace:
-        """Parse field parameters into a pair of data and file properties.
+        """
+        Parse a list of field parameter strings into structured `data`
+        and `file` mappings.
 
         Args:
-            params (Optional[List[str]]): List of field parameters.
-            replace (Optional[Dict[str, str]], optional): A dictionary
-                containing keys and values, replacing any key occurrences in the
-                parsed data values, to its appointed value. Defaults to `None`.
+            params (Optional[List[str]]): List of strings in the form
+                `key=value` or `key=@/path/to/file`.
+            replace (Optional[Dict[str, str]]): Optional mapping of
+                substrings to replace inside values.
 
         Returns:
-            SimpleNamespace: A SimpleNamespace instance containing `data` and
-                `file` properties, each one a pair of key/value dictionary.
-        """
+            SimpleNamespace: Object with `data` and `file` attributes
+                mapping to dictionaries when present.
 
-        def _replace(text):
-            for replace_from, replace_to in replace.items():
+        Example:
+
+            >>> params = ["key1=value1", "file1=@/path/to/file"]
+            >>> replace = {"value1": "new_value1"}
+            >>> result = _Interface.__parse_field_parameters(
+            ...     params,
+            ...     replace,
+            ... )
+            >>> print(result.data)
+            {'key1': 'new_value1'}
+            >>> print(result.file)
+            {'file1': '/path/to/file'}
+        """
+        def _replace(text: str, replace_pair: Dict[str, str]) -> str:
+            for replace_from, replace_to in replace_pair.items():
                 if replace_from and replace_to:
                     return text.replace(replace_from, replace_to)
             return text
@@ -225,7 +316,7 @@ class Interface:
                     pkey, pval = p.split("=", 1)
                     if pkey and pval:
                         if replace:
-                            pval = _replace(pval)
+                            pval = _replace(pval, replace)
                         if not data:
                             data = {}
                         data[pkey] = pval
@@ -234,3 +325,106 @@ class Interface:
             data=data,
             file=file,
         )
+
+    def close(self) -> None:
+        """
+        Close the underlying HTTP session.
+
+        Note:
+            This method is primarily intended for use when the
+            instance is not managed with a `with` context manager.
+            If using `with`, the session will be closed automatically
+            on context exit.
+        """
+        self._session.close()
+
+    def __enter__(self):
+        """
+        Enter a runtime context and return this instance.
+
+        Returns:
+            _Interface: The current instance for use in a `with` block.
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        """
+        Exit the runtime context and close the session.
+
+        Closes the session regardless of whether an exception occurred.
+        """
+        self.close()
+
+    @property
+    def endpoint(self) -> str:
+        """
+        Return the full API endpoint URL, including optional versioning.
+        """
+        endpoint = self._config.get("api", "endpoint")
+        if self.version:
+            version = f"v{self.version}"
+        else:
+            version = ""
+        return f"{endpoint}/{version}"
+
+    @property
+    def default_timeout(self) -> int:
+        """Default HTTP timeout in seconds from configuration."""
+        return self._config.get("connection_settings", "default_timeout")
+
+    @property
+    def long_timeout(self) -> int:
+        """
+        Extended HTTP timeout in seconds from configuration.
+
+        Used for endpoints where processing or file transfer may take
+        longer than the default.
+        """
+        return self._config.get("connection_settings", "long_timeout")
+
+    @property
+    def version(self) -> Optional[float]:
+        """Optional API version number."""
+        return self._version
+
+    @version.setter
+    def version(self, value: Optional[float]) -> None:
+        """
+        Set the API version number used in the endpoint URL.
+
+        Args:
+            value (Optional[float]): Version number as a float, or
+                `None` to disable versioning.
+        """
+        self._version = value
+
+    @property
+    def user_agent_product(self) -> str:
+        """Product identifier used in the User-Agent string."""
+        return self._user_agent_product
+
+    @user_agent_product.setter
+    def user_agent_product(self, value: str) -> None:
+        """Set the User-Agent product identifier.
+
+        Args:
+            value (str): One of the allowed user agent product
+                identifiers including
+                `vertopal.settings.USER_AGENT_PRODUCT_LIB` or
+                `vertopal.settings.USER_AGENT_PRODUCT_CLI`.
+
+        Raises:
+            ValueError: If an invalid value is provided.
+        """
+        valid_user_agents = (
+            settings.USER_AGENT_PRODUCT_LIB,
+            settings.USER_AGENT_PRODUCT_CLI,
+        )
+        if value not in valid_user_agents:
+            raise ValueError(
+                (
+                    "Invalid User-Agent value. Possible values are: "
+                    f"{', '.join(valid_user_agents)}."
+                )
+            )
+        self._user_agent_product = value

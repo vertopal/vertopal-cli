@@ -1,363 +1,390 @@
+# -*- coding: utf-8 -*-
+# SPDX-License-Identifier: MIT
+#
+# Copyright (c) 2023–2025 Vertopal - https://www.vertopal.com
+# Repository: https://github.com/vertopal/vertopal-cli
+# Issues: https://github.com/vertopal/vertopal-cli/issues
+#
+# Description:
+#   Implementing the high-level operations supported by the Vertopal
+#   public API surface (v1). Methods are deliberately small and
+#   primarily compose request payloads then delegate to the
+#   `_Interface.send_request` implementation for HTTP transport and
+#   response handling. The implementation expects credentials to be
+#   available via an optional `Credential` instance or the library
+#   configuration.
+
 """
-vertopal-cli
-~~~~~~~~~~~~
+Vertopal API v1 client utilities.
 
-:copyright: (c) 2023 Vertopal - https://www.vertopal.com
-:license: MIT, see LICENSE for more details.
+This module provides the `API` class which implements client-side
+helpers for calling Vertopal API version 1 endpoints. The class methods
+wrap common server interactions such as uploading files, requesting
+conversions, polling task status, fetching results, and streaming
+downloads into a small, typed surface that accepts Vertopal I/O
+protocol objects (`Readable` and `Writable`) and returns the library's
+`vertopal.api.response._CustomResponse` wrapper.
 
-https://github.com/vertopal/vertopal-cli
+Example:
+
+    >>> from vertopal.api.v1 import API
+    >>> from vertopal.io.adapters.file import FileInput
+    >>> inp = FileInput("./document.pdf")
+    >>> with API() as client:
+    ...     resp = client.upload_file(inp)
 """
 
 from typing import Optional
 
-import requests
+from vertopal.api.credential import Credential
+from vertopal.api.interface import _Interface
+from vertopal.api.response import _CustomResponse
+from vertopal.enums import InterfaceStrategyMode, InterfaceSublistMode
+from vertopal.io.protocols import Readable, Writable
 
-from vertopal.api.interface import Interface
+# Define public names for external usage
+__all__ = [
+    "API",
+]
 
 
-class API(Interface):
-    """Provides methods for sending requests to the Vertopal API-v1 endpoints.
+class API(_Interface):
+    """
+    Client helpers for Vertopal API version 1.
 
-    Attributes:
-        ENDPOINT (str): The endpoint URL of the Vertopal API v1.
+    The `API` object provides thin, typed wrappers over the HTTP
+    endpoints exposed by Vertopal v1. Methods assemble the JSON payloads
+    expected by the server and delegate network I/O to the underlying 
+    `vertopal.api.interface._Interface` implementation.
 
-    Usage:
+    Example:
 
-        >>> import vertopal
-        >>> response = vertopal.API.upload(
-        ...     filename="document.pdf",
-        ...     filepath="/home/vertopal/document.pdf",
-        ...     app="my-app-id",
-        ...     token="my-security-token",
-        ... )
-        >>> response
-        <Response [200]>
-        >>> json_res = response.json()
-        >>> json_res["result"]["output"]["connector"]
-        'the-connector-of-the-upload-task'
+        >>> from vertopal.api.v1 import API
+        >>> from vertopal.io.adapters.file import FileInput
+        >>> inp = FileInput("./document.pdf")
+        >>> with API() as client:
+        ...     resp = client.upload_file(inp)
     """
 
-    ENDPOINT: str = "https://api.vertopal.com/v1"
-
-    @classmethod
-    def upload(
-        cls,
-        filename: str,
-        filepath: str,
-        app: str,
-        token: str
-    ) -> requests.Response:
-        """Send an upload request to the Vertopal API endpoint.
+    def __init__(self, *, credential: Optional[Credential] = None):
+        """
+        Create a new API client instance.
 
         Args:
-            filename (str): Input file name.
-            filepath (str): Absolute path of the input file.
-            app (str): Your App-ID.
-            token (str): Your Security-Token.
+            credential (Optional[Credential]): A `Credential` instance
+                containing application id and token, or `None` to use
+                configuration-provided credentials.
+        """
+        super().__init__(credential=credential)
+        self.version = 1
+
+    def upload_file(self, readable: Readable) -> _CustomResponse:
+        """
+        Upload a file to the Vertopal server.
+
+        Args:
+            readable (Readable): The readable to read the file from.
 
         Returns:
-            requests.Response: :class:`Response <Response>` object.
+            _CustomResponse: Response wrapper with upload details and
+                the server response object available via
+                `original_response`.
         """
+        filename = readable.filename or "upload.bin"
+        content_type = readable.content_type or "application/octet-stream"
 
-        with open(filepath, "rb") as file:
-            response = requests.request(
-                "POST",
-                cls.ENDPOINT + "/upload/file",
-                headers=cls._get_headers(token),
+        with readable.open() as file:
+            response = self.send_request(
+                path="/upload/file",
+                method="POST",
                 data={
                     'data': '{'
-                        f'"app": "{app}"'
+                        f'"app": "{self._credential.app}"'
                     '}'
                 },
                 files=[(
                     "file",
-                    (filename, file)
+                    (filename, file, content_type)
                 )],
-                timeout=300,
+                timeout=self.long_timeout,
             )
         return response
 
-    @classmethod
-    def convert( # pylint: disable=too-many-arguments
-        cls,
-        output_format: str,
-        app: str,
-        token: str,
+    def convert_file(
+        self,
         connector: str,
+        output_format: str,
+        *,
         input_format: Optional[str] = None,
-        mode: str = Interface.ASYNC
-    ) -> requests.Response:
-        """Send a convert request to the Vertopal API endpoint.
+        mode: InterfaceStrategyMode = InterfaceStrategyMode.ASYNC,
+    ) -> _CustomResponse:
+        """
+        Request conversion of an uploaded file.
 
         Args:
-            output_format (str): The output `format[-type]`, which input file
-                will be converted to.
-            app (str): Your App-ID.
-            token (str): Your Security-Token.
-            connector (str): The connector from the previous task (Upload).
-            input_format (str, optional): The input `format[-type]`. If not
-                specified, the `format[-type]` of the input file will be 
-                considered based on its extension and type. Defaults to `None`.
-            mode (str, optional): Mode strategy of the task which can be 
-                :class:`Interface.SYNC` or :class:`Interface.ASYNC`. 
-                Defaults to :class:`Interface.ASYNC`.
+            connector (str): Connector returned by the upload task.
+            output_format (str): Target format[-type] for conversion.
+            input_format (Optional[str]): Optional input format[-type]
+                hint for the conversion engine.
+            mode (InterfaceStrategyMode): Strategy mode; synchronous
+                (`vertopal.enums.InterfaceStrategyMode.SYNC`)
+                or asynchronous
+                (`vertopal.enums.InterfaceStrategyMode.ASYNC`)
+                processing; defaults to async mode.
 
         Returns:
-            requests.Response: :class:`Response <Response>` object.
+            _CustomResponse: Response wrapper containing conversion
+                task information.
         """
-
         if input_format:
-            io_field = f'"input": "{input_format}","output": "{output_format}"'
+            params: str = (
+                f'"input": "{input_format}",'
+                f'"output": "{output_format}"'
+            )
         else:
-            io_field = f'"output": "{output_format}"'
-        data = {
-            'data': '{'
-                f'"app": "{app}",'
-                f'"connector": "{connector}",'
-                '"include": ["result", "entity"],'
-                f'"mode": "{mode}",'
-                '"parameters": {'
-                    f'{io_field}'
+            params: str = f'"output": "{output_format}"'
+
+        response = self.send_request(
+            path="/convert/file",
+            method="POST",
+            data={
+                'data': '{'
+                    f'"app": "{self._credential.app}",'
+                    f'"connector": "{connector}",'
+                    '"include": ["result", "entity"],'
+                    f'"mode": "{mode}",'
+                    '"parameters": {'
+                        f'{params}'
+                    '}'
                 '}'
-            '}'
-        }
-        response = requests.request(
-            "POST",
-            cls.ENDPOINT + "/convert/file",
-            headers=cls._get_headers(token),
-            data=data,
-            timeout=30,
+            },
+            timeout=self.default_timeout,
         )
         return response
 
-    @classmethod
-    def status(cls, app: str, token: str, connector: str) -> requests.Response:
-        """Send a convert status request to the Vertopal API endpoint.
+    def convert_status(self, connector: str) -> _CustomResponse:
+        """
+        Retrieve the current status for a conversion task.
 
         Args:
-            app (str): Your App-ID.
-            token (str): Your Security-Token.
-            connector (str): The connector of a convert task.
+            connector (str): Connector identifier for the task.
 
         Returns:
-            requests.Response: :class:`Response <Response>` object.
+            _CustomResponse: Response with task status details.
         """
-
-        response = requests.request(
-            "POST",
-            cls.ENDPOINT + "/convert/status",
-            headers=cls._get_headers(token),
+        response = self.send_request(
+            path="/convert/status",
+            method="POST",
             data={
                 'data': '{'
-                    f'"app": "{app}",'
+                    f'"app": "{self._credential.app}",'
                     f'"connector": "{connector}"'
                 '}'
             },
-            timeout=30,
+            timeout=self.default_timeout,
         )
         return response
 
-    @classmethod
-    def task_response(
-        cls,
-        app: str,
-        token: str,
-        connector: str
-    ) -> requests.Response:
-        """Send a task response request to the Vertopal API endpoint.
+    def task_response(self, connector: str) -> _CustomResponse:
+        """
+        Fetch the result payload for a completed task.
 
         Args:
-            app (str): Your App-ID.
-            token (str): Your Security-Token.
-            connector (str): The connector of a task.
+            connector (str): Connector identifier for the task.
 
         Returns:
-            requests.Response: :class:`Response <Response>` object.
+            _CustomResponse: Response wrapping the task's result.
         """
-
-        response = requests.request(
-            "POST",
-            cls.ENDPOINT + "/task/response",
-            headers=cls._get_headers(token),
+        response = self.send_request(
+            path="/task/response",
+            method="POST",
             data={
                 'data': '{'
-                    f'"app": "{app}",'
+                    f'"app": "{self._credential.app}",'
                     f'"connector": "{connector}",'
                     '"include": ["result"]'
                 '}'
             },
-            timeout=30,
+            timeout=self.default_timeout,
         )
         return response
 
-    @classmethod
-    def download(
-        cls,
-        app: str,
-        token: str,
-        connector: str,
-        url: bool = False
-    ) -> requests.Response:
-        """Send a download request to the Vertopal API endpoint.
+    def download_url(self, connector: str) -> _CustomResponse:
+        """
+        Obtain a download URL for a converted file.
 
         Args:
-            app (str): Your App-ID.
-            token (str): Your Security-Token.
-            connector (str): The connector from the previous task (Convert).
-            url (bool, optional): If `True`, a request for getting download
-                url, and if `False` a request for getting file content will be
-                send. Defaults to `False`.
+            connector (str): Connector identifier returned by the
+                conversion task.
 
         Returns:
-            requests.Response: :class:`Response <Response>` object.
+            _CustomResponse: Response containing the download URL
+                and related metadata.
         """
-
-        if url:
-            endpoint = cls.ENDPOINT + "/download/url"
-            timeout = 30
-        else:
-            endpoint = cls.ENDPOINT + "/download/url/get"
-            timeout = 300
-        response = requests.request(
-            "POST",
-            endpoint,
-            headers=cls._get_headers(token),
+        response = self.send_request(
+            path="/download/url",
+            method="POST",
             data={
                 'data': '{'
-                    f'"app": "{app}",'
+                    f'"app": "{self._credential.app}",'
                     f'"connector": "{connector}"'
                 '}'
             },
-            timeout=timeout,
+            timeout=self.default_timeout,
         )
         return response
 
-    @classmethod
-    def format_get(
-        cls,
-        app: str,
-        token: str,
-        format_: str,
-    ) -> requests.Response:
-        """Send a format/get request to the Vertopal API endpoint.
-
-        Get the properties of a specific format.
+    def download_url_get(
+        self,
+        writable: Writable,
+        connector: str,
+        *,
+        chunk_size: Optional[int] = None,
+    ) -> None:
+        """
+        Stream a converted file to a `Writable` sink.
 
         Args:
-            app (str): Your App-ID.
-            token (str): Your Security-Token.
-            format_ (str): The specific `format[-type]` you want to get
-                its properties.
+            writable (Writable): Destination sink implementing the
+                writable protocol.
+            connector (str): Connector identifier for the conversion
+                result to download.
+            chunk_size (Optional[int]): Number of bytes to request per
+                streamed chunk. When `None`, the value is read from
+                configuration (`connection_settings.stream_chunk_size`).
+        """
+        if chunk_size:
+            stream_chunk_size: int = chunk_size
+        else:
+            stream_chunk_size: int = self._config.get(
+                "connection_settings",
+                "stream_chunk_size",
+                cast=int,
+            )
+
+        args = {
+            "path": "/download/url/get",
+            "method": "POST",
+            "data":{
+                'data': '{'
+                    f'"app": "{self._credential.app}",'
+                    f'"connector": "{connector}"'
+                '}'
+            },
+            "timeout": self.long_timeout,
+            "stream": True,
+        }
+
+        with self.send_request(**args) as r:
+            with writable.open() as out:
+                for chunk in r.iter_content(chunk_size=stream_chunk_size):
+                    if chunk:
+                        out.write(chunk)
+
+    def format_get(self, format_name: str) -> _CustomResponse:
+        """
+        Query metadata for a specific file format.
+
+        Args:
+            format_name (str): Format[-type] identifier to query.
 
         Returns:
-            requests.Response: :class:`Response <Response>` object.
+            _CustomResponse: Server response describing the format.
         """
-
-        response = requests.request(
-            "POST",
-            cls.ENDPOINT + "/format/get",
-            headers=cls._get_headers(token),
+        response = self.send_request(
+            path="/format/get",
+            method="POST",
             data={
                 'data': '{'
-                    f'"app": "{app}",'
+                    f'"app": "{self._credential.app}",'
                     '"parameters": {'
-                        f'"format": "{format_}"'
+                        f'"format": "{format_name}"'
                     '}'
                 '}'
             },
-            timeout=30,
+            timeout=self.default_timeout,
         )
         return response
 
-    @classmethod
     def convert_graph(
-        cls,
-        app: str,
-        token: str,
-        input_: str,
-        output: str,
-    ) -> requests.Response:
-        """Send a convert/graph request to the Vertopal API endpoint.
-
-        Get the relation between the input format and the output format
-        for file conversion.
+        self,
+        input_format: str,
+        output_format: str,
+    ) -> _CustomResponse:
+        """
+        Retrieve the conversion graph between two formats.
 
         Args:
-            app (str): Your App-ID.
-            token (str): Your Security-Token.
-            input_ (str): The input `format[-type]`.
-            output (str): The output `format[-type]`.
+            input_format (str): Source/input format[-type] identifier.
+            output_format (str): Target/output format[-type] identifier.
 
         Returns:
-            requests.Response: :class:`Response <Response>` object.
+            _CustomResponse: Response describing conversion
+                relationships and available paths.
         """
-
-        response = requests.request(
-            "POST",
-            cls.ENDPOINT + "/convert/graph",
-            headers=cls._get_headers(token),
+        response = self.send_request(
+            path="/convert/graph",
+            method="POST",
             data={
                 'data': '{'
-                    f'"app": "{app}",'
+                    f'"app": "{self._credential.app}",'
                     '"parameters": {'
-                        f'"input": "{input_}",'
-                        f'"output": "{output}"'
+                        f'"input": "{input_format}",'
+                        f'"output": "{output_format}"'
                     '}'
                 '}'
             },
-            timeout=30,
+            timeout=self.default_timeout,
         )
         return response
 
-    @classmethod
     def convert_formats(
-        cls,
-        app: str,
-        token: str,
-        sublist: str,
-        format_: Optional[str] = None,
-    ) -> requests.Response:
-        """Send a convert/formats request to the Vertopal API endpoint.
-
-        Get supported input or output formats for file conversion.
+        self,
+        sublist: InterfaceSublistMode,
+        *,
+        format_name: Optional[str] = None,
+    ) -> _CustomResponse:
+        """
+        List supported formats for conversion (inputs or outputs).
 
         Args:
-            app (str): Your App-ID.
-            token (str): Your Security-Token.
-            sublist (str): Selects supported formats based on whether they are
-                inputs or outputs. Valid values are `Interface.INPUTS`
-                and `Interface.OUTPUTS`.
-            format_ (str, optional): The specific `format[-type]` you want to
-                get its supported input or output formats. Defaults to `None`.
+            sublist (InterfaceSublistMode): Either
+                `InterfaceSublistMode.INPUTS` or
+                `InterfaceSublistMode.OUTPUTS`.
+            format_name (Optional[str]): Optional specific format[-type]
+                to filter the results for.
 
         Raises:
-            ValueError: If the `sublist` has an invalid value.
+            ValueError: If `sublist` is not a valid
+                `InterfaceSublistMode` member.
 
         Returns:
-            requests.Response: :class:`Response <Response>` object.
+            _CustomResponse: Server response with supported formats.
         """
+        if sublist not in InterfaceSublistMode:
+            raise ValueError(
+                "`sublist` must be either "
+                "`InterfaceSublistMode.INPUTS` "
+                "or `InterfaceSublistMode.OUTPUTS`."
+            )
 
-        if sublist not in (cls.INPUTS, cls.OUTPUTS):
-            raise ValueError('sublist must be either "inputs" or "outputs"')
-
-        if format_:
-            data_format = f',"format": "{format_}"'
+        if format_name:
+            data_format = f',"format": "{format_name}"'
         else:
             data_format = ""
 
-        response = requests.request(
-            "POST",
-            cls.ENDPOINT + "/convert/formats",
-            headers=cls._get_headers(token),
+        response = self.send_request(
+            path="/convert/formats",
+            method="POST",
             data={
                 'data': '{'
-                    f'"app": "{app}",'
+                    f'"app": "{self._credential.app}",'
                     '"parameters": {'
                         f'"sublist": "{sublist}"'
                         f'{data_format}'
                     '}'
                 '}'
             },
-            timeout=30,
+            timeout=self.default_timeout,
         )
         return response
