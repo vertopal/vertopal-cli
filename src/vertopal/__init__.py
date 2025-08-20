@@ -1,17 +1,60 @@
+# -*- coding: utf-8 -*-
+# SPDX-License-Identifier: MIT
+#
+# Copyright (c) 2023–2025 Vertopal - https://www.vertopal.com
+# Repository: https://github.com/vertopal/vertopal-cli
+# Issues: https://github.com/vertopal/vertopal-cli/issues
+#
+# Description:
+#   Top-level package initializer for the Vertopal CLI and Python
+#   library. Declares package metadata (author, copyright,
+#   license, version) and re‑exports core convenience classes
+#   for external consumers. Serves as the primary import point
+#   for most CLI and library integrations.
+
 """
-vertopal-cli
-~~~~~~~~~~~~
+Top-level package for the Vertopal CLI and library.
 
-:copyright: (c) 2023 Vertopal - https://www.vertopal.com
-:license: MIT, see LICENSE for more details.
+This package exposes the public convenience API for the Vertopal
+command-line interface and Python library. The module declares the
+package version and re-exports commonly used helpers for external
+consumers.
 
-https://github.com/vertopal/vertopal-cli
+Attributes:
+    __author__ (str): Package author.
+    __copyright__ (str): Copyright notice.
+    __license__ (str): License name.
+    __version__ (str): Current package version.
+
+Example:
+
+    >>> from vertopal import Converter
+    >>> from vertopal import __version__  # Access package version
+    >>> from vertopal.io import FileInput, FileOutput
+    >>> source = FileInput("./input.md")
+    >>> sink = FileOutput("./output.pdf")
+    >>> converter = Converter()
+    >>> conversion = converter.convert(
+    ...     readable=source,
+    ...     writable=sink,
+    ...     output_format="pdf",
+    ... )
+    >>> conversion.wait()
+    >>> if conversion.successful():
+    ...     conversion.download()
+    ...     print(conversion.credits_used, "credit(s) used.")
+    ... 
+    '1 credit(s) used.'
 """
 
 __author__ = "Vertopal"
-__copyright__ = "Copyright (c) 2023 Vertopal"
+__copyright__ = "Copyright (c) 2023-2025 Vertopal"
 __license__ = "MIT License"
 __version__ = "1.1.0"
 
-from vertopal.api.v1 import API
 from vertopal.api.converter import Converter
+
+# Define public names for external usage
+__all__ = [
+    "Converter",
+]
