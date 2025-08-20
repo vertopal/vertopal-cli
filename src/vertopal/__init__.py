@@ -8,9 +8,9 @@
 # Description:
 #   Top-level package initializer for the Vertopal CLI and Python
 #   library. Declares package metadata (author, copyright,
-#   license, version) and re‑exports core convenience classes
-#   for external consumers. Serves as the primary import point
-#   for most CLI and library integrations.
+#   license, version, description, email, url) and re‑exports core
+#   convenience classes for external consumers. Serves as the
+#   primary import point for most CLI and library integrations.
 
 """
 Top-level package for the Vertopal CLI and library.
@@ -25,6 +25,9 @@ Attributes:
     __copyright__ (str): Copyright notice.
     __license__ (str): License name.
     __version__ (str): Current package version.
+    __description__ (str): Short summary of the package purpose.
+    __email__ (str): Contact email for support or inquiries.
+    __url__ (str): Project homepage.
 
 Example:
 
@@ -47,10 +50,16 @@ Example:
     '1 credit(s) used.'
 """
 
-__author__ = "Vertopal"
-__copyright__ = "Copyright (c) 2023-2025 Vertopal"
-__license__ = "MIT License"
-__version__ = "1.1.0"
+__author__: str = "Vertopal"
+__copyright__: str = "Copyright (c) 2023-2025 Vertopal"
+__license__: str = "MIT License"
+__version__: str = "1.1.0"
+__description__: str = (
+    "Command-line and Python interface "
+    "for converting digital files via Vertopal API"
+)
+__email__: str = "contact@vertopal.com"
+__url__: str = "https://github.com/vertopal/vertopal-cli"
 
 from vertopal.api.converter import Converter
 
