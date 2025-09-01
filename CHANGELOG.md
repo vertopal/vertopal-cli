@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes currently in progress or planned for future versions will appear here.*
 
+## [2.0.1] - 2025-09-01
+
+### 🐛 Fixed
+
+- Updated GitHub Actions workflow to replace deprecated `actions/upload-artifact@v3` and `actions/download-artifact@v3` with v4 equivalents.
+- Adjusted artifact download step to use `pattern` and `merge-multiple` for collecting OS-specific build artifacts in a single directory during release.
+
 ## [2.0.0] - 2025-09-01
 
 ### 📦 Migration Guide (from 1.x to 2.0.0)
@@ -177,7 +184,8 @@ For full details, see the **Breaking Changes** and **Added** sections below.
 - API client implementation
 - Configuration management
 
-[Unreleased]: https://github.com/vertopal/vertopal-cli/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/vertopal/vertopal-cli/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.1
 [2.0.0]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.0
 [1.1.0]: https://github.com/vertopal/vertopal-cli/releases/tag/v1.1.0
 [1.0.6]: https://github.com/vertopal/vertopal-cli/releases/tag/v1.0.6
