@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes currently in progress or planned for future versions will appear here.*
 
+## [2.0.2] - 2025-09-01
+
+### 🐛 Fixed
+
+- Removed `slots=True` from `@dataclass` declarations to restore compatibility with Python 3.9.  
+
 ## [2.0.1] - 2025-09-01
 
 ### 🐛 Fixed
@@ -184,7 +190,8 @@ For full details, see the **Breaking Changes** and **Added** sections below.
 - API client implementation
 - Configuration management
 
-[Unreleased]: https://github.com/vertopal/vertopal-cli/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/vertopal/vertopal-cli/compare/v2.0.2...HEAD
+[2.0.2]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.2
 [2.0.1]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.1
 [2.0.0]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.0
 [1.1.0]: https://github.com/vertopal/vertopal-cli/releases/tag/v1.1.0
