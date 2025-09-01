@@ -43,7 +43,7 @@ __all__ = [
 ]
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class _InputSpec:
     """Holding specifications of an input file."""
     source: Readable
@@ -53,7 +53,7 @@ class _InputSpec:
         object.__setattr__(self, "format", _canonicalize_format(self.format))
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class _OutputSpec:
     """Holding specifications of an output file."""
     sink: Writable

@@ -327,7 +327,7 @@ class _ConversionManager:
         task.run()
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class _IOSpec:
     """Holding specifications of an input/output file pair."""
     input_path: PathType
