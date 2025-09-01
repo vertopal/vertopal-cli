@@ -29,10 +29,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v5.6.0
+        uses: actions/setup-python@v5
         with:
           python-version: 3.9
 
@@ -55,7 +55,7 @@ jobs:
         run: python ./tools/build.py --version ${{ github.ref_name }} --delete-bin
 
       - name: Deploy artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vertopal-${{ matrix.os }}
           path: dist/vertopal*.zip
@@ -70,7 +70,10 @@ jobs:
 
     steps:
       - name: Get deployed artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
+        with:
+          pattern: vertopal-*
+          merge-multiple: true
 
       - name: Create a GitHub release
         uses: softprops/action-gh-release@v1
@@ -78,6 +81,5 @@ jobs:
           name: Vertopal CLI ${{ github.ref_name }}
           prerelease: false
           files: |
-            vertopal-windows-latest/*
-            vertopal-macos-latest/*
-            vertopal-ubuntu-20.04/*
+            *.zip
+
