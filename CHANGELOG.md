@@ -9,11 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes currently in progress or planned for future versions will appear here.*
 
+## [2.0.3] - 2025-09-01
+
+### 🐛 Fixed
+
+- Updated GitHub Actions build matrix to replace `ubuntu-20.04` with `ubuntu-22.04` in preparation for the deprecation and removal of the `ubuntu-20.04` runner image on GitHub Actions (April 1, 2025). This ensures continued availability of Linux builds and avoids scheduled brownout outages.
+
 ## [2.0.2] - 2025-09-01
 
 ### 🐛 Fixed
 
-- Removed `slots=True` from `@dataclass` declarations to restore compatibility with Python 3.9.  
+- Removed `slots=True` from `@dataclass` declarations to restore compatibility with Python 3.9.
 
 ## [2.0.1] - 2025-09-01
 
@@ -28,9 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 If you are upgrading from Vertopal CLI 1.x, please review and apply the following changes to ensure a smooth transition:
 
-1. **Reconfigure private credentials**  
-   - The configuration key for the application ID has changed from `api.appid` to `api.app`.  
-   - You must update your stored credentials; otherwise, the program will raise an `InvalidCredentialError` exception.  
+1. **Reconfigure private credentials**
+   - The configuration key for the application ID has changed from `api.appid` to `api.app`.
+   - You must update your stored credentials; otherwise, the program will raise an `InvalidCredentialError` exception.
    - **New syntax (v2.0.0+):**
 
      ```bash
@@ -43,8 +49,8 @@ If you are upgrading from Vertopal CLI 1.x, please review and apply the followin
      vertopal config --app "your-app-id" --token "your-security-token"
      ```
 
-2. **Note the new public default credential**  
-   - Vertopal CLI now ships with a built‑in, non‑authenticated credential (`app: free`, `token: FREE-TOKEN`) so you can start using it immediately after installation.  
+2. **Note the new public default credential**
+   - Vertopal CLI now ships with a built‑in, non‑authenticated credential (`app: free`, `token: FREE-TOKEN`) so you can start using it immediately after installation.
    - This credential is free but subject to daily rate limits. For production workloads, configure your private credentials as shown above.
 
 For full details, see the **Breaking Changes** and **Added** sections below.
@@ -56,7 +62,7 @@ For full details, see the **Breaking Changes** and **Added** sections below.
 - Removed several legacy public symbols previously exported from the package root to provide a smaller, stable public surface (see [`vertopal/__init__.py`](src/vertopal/__init__.py)).
 - Removed the top-level re-export of internal API classes. Consumers should import low-level clients directly from their modules (for example `vertopal.api.v1.API`).
 - Removed several command-line flags from the `vertopal` command: `--app`, `--token`, `--overwrite`, and `--silent`.
-- Configuration key changed — the application ID is now stored under the INI-style key `api.app` in the user configuration file (previously `api.appid`).  
+- Configuration key changed — the application ID is now stored under the INI-style key `api.app` in the user configuration file (previously `api.appid`).
   Users upgrading from earlier versions **must** reconfigure their private credentials to continue using them.
 
   **New syntax (v2.0.0+):**
@@ -190,7 +196,8 @@ For full details, see the **Breaking Changes** and **Added** sections below.
 - API client implementation
 - Configuration management
 
-[Unreleased]: https://github.com/vertopal/vertopal-cli/compare/v2.0.2...HEAD
+[Unreleased]: https://github.com/vertopal/vertopal-cli/compare/v2.0.3...HEAD
+[2.0.3]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.3
 [2.0.2]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.2
 [2.0.1]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.1
 [2.0.0]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.0
