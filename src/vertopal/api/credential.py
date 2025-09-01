@@ -32,7 +32,7 @@ class Credential:
     """
     Immutable container for Vertopal API credentials.
 
-    Stores the **Application ID** and **security token** needed to
+    Stores the **Application ID** and **Security Token** needed to
     authenticate API requests.
 
     Tokens are masked in all human-readable outputs to reduce the risk
