@@ -1,6 +1,6 @@
 [project]
 name = "vertopal"
-version = "2.0.2"
+version = "2.0.3"
 
 description = "Convert your files in terminal using Vertopal API"
 readme = "README.md"
