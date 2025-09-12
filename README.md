@@ -16,30 +16,33 @@ You can also download the most recent version of Vertopal CLI binaries for **mac
 
 ### Installer
 
-An automatic installer is available for each different platform. It will run an install script that downloads and copy Vertopal CLI binaries to the correct location.
+An automatic installer is available for each supported platform. It runs a script that downloads and copies Vertopal CLI binaries to the correct location.
 
-Using macOS Terminal:
+Using macOS or Linux Terminal:
 
 ```bash
-curl https://run.vertopal.com/cli/macos | bash
+curl https://run.vertopal.com/cli/unix  | bash
 ```
 
 On Windows using PowerShell:
 
-```bash
+```powershell
 (curl https://run.vertopal.com/cli/windows).Content | iex
 ```
 
 > [!TIP]
-> If you are getting any `UnauthorizedAccess` error, then start Windows PowerShell with the "Run as administrator" option and run `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine`.
+> If you encounter an `UnauthorizedAccess` error, start Windows PowerShell with the **"Run as administrator"** option and run:
 >
-> Now rerun the above installation command. To change the [*Execution Policies*](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies) to its default, you can run `Set-ExecutionPolicy -ExecutionPolicy Default -Scope LocalMachine`.
-
-Using Linux Terminal:
-
-```bash
-curl https://run.vertopal.com/cli/linux | bash
-```
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
+> ```
+>
+> Then rerun the installation command above.
+> To revert the [Execution Policies](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies) to their default, run:
+>
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy Default -Scope LocalMachine
+> ```
 
 ## Using Vertopal CLI
 
