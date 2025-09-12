@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes currently in progress or planned for future versions will appear here.*
 
+### 🛠 Changed
+
+- Refactored type hints to use built-in generics (`list`, `dict`, and `tuple`) instead of `typing.List`, `typing.Dict`, and `typing.Tuple`.
+- Updated README installer instructions to use a unified endpoint for macOS and Linux (`https://run.vertopal.com/cli/unix`).
+
 ## [2.0.3] - 2025-09-01
 
 ### 🐛 Fixed
