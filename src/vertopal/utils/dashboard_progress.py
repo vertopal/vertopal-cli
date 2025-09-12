@@ -63,7 +63,7 @@ import re
 import sys
 import threading
 import time
-from typing import Dict, List, Optional, TextIO
+from typing import Optional, TextIO
 
 from vertopal.enums import _ANSIEscapeCode, _ProgressUnitStateType
 from vertopal.utils.misc import (
@@ -177,7 +177,7 @@ class _HybridProgress:
         self,
         total_files: int,
         max_concurrent: int = 2,
-        filenames: Optional[List[str]] = None,
+        filenames: Optional[list[str]] = None,
         style: Optional[_DashboardStyle] = None,
     ):
         """
@@ -187,21 +187,21 @@ class _HybridProgress:
             total_files (int): Total number of files to track.
             max_concurrent (int): Maximum number of concurrently active
                 task lines to display. Defaults to `2`.
-            filenames (Optional[List[str]]): Optional list of filenames
+            filenames (Optional[list[str]]): Optional list of filenames
                 to pre-populate tasks with.
             style (Optional[_DashboardStyle]): Optional `_DashboardStyle`
                 instance to override presentation settings.
         """
         self.total_files = total_files
         self.max_concurrent = max_concurrent
-        self.tasks: Dict[int, _TaskInfo] = {}
+        self.tasks: dict[int, _TaskInfo] = {}
         self._completed_count = 0
         self._active_count = 0
         self._pending_count = total_files
         self._error_count = 0
-        self.active_tasks: List[_TaskInfo] = []
-        self.completed_tasks: List[_TaskInfo] = []
-        self.error_tasks: List[_TaskInfo] = []
+        self.active_tasks: list[_TaskInfo] = []
+        self.completed_tasks: list[_TaskInfo] = []
+        self.error_tasks: list[_TaskInfo] = []
 
         # Overall process timing
         self._process_start_time: Optional[float] = None

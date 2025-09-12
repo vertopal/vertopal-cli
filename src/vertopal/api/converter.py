@@ -27,7 +27,7 @@ the converted result to a sink.
 from dataclasses import dataclass
 from time import sleep
 from types import SimpleNamespace
-from typing import Callable, cast, Optional, Tuple
+from typing import Callable, cast, Optional
 
 from vertopal import settings
 from vertopal.api.credential import Credential
@@ -106,14 +106,14 @@ class _Conversion:
 
     def wait(
         self,
-        poll_intervals: Tuple[int, ...] = settings.SLEEP_PATTERN,
+        poll_intervals: tuple[int, ...] = settings.SLEEP_PATTERN,
         sleep_func: Callable[[float], None] = sleep,
     ) -> None:
         """
         Poll the conversion task until it completes.
 
         Args:
-            poll_intervals (Tuple[int, ...]): Sequence of sleep
+            poll_intervals (tuple[int, ...]): Sequence of sleep
                 durations in seconds used between polls. Defaults to
                 `vertopal.settings.SLEEP_PATTERN`.
             sleep_func (Callable[[float], None]): Callable used to

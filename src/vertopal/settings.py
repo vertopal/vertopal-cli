@@ -31,7 +31,7 @@ usage constraints.
 """
 
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from vertopal.types import PathType
 
@@ -41,7 +41,7 @@ from vertopal.types import PathType
 # represents a section (e.g., "api"), and its values contain
 # specific configuration options such as the application ID, token,
 # endpoint URL, timeout, and retry count.
-DEFAULT_CONFIG: Dict[str, Dict[str, Any]] = {
+DEFAULT_CONFIG: dict[str, dict[str, Any]] = {
 
     # API credentials and endpoint configuration
     # ------------------------------------------
@@ -110,7 +110,7 @@ USER_AGENT_PRODUCT_LIB: str = "VertopalPythonLib"
 #     - Wait 60 seconds after all subsequent attempts.
 # This design allows polling with exponential backoff to balance efficiency
 # and server resource usage.
-SLEEP_PATTERN: Tuple[int, ...] = (10, 10, 15)
+SLEEP_PATTERN: tuple[int, ...] = (10, 10, 15)
 
 # MAX_CONCURRENT_CONVERSIONS defines the maximum number of files that can be
 # processed concurrently during bulk conversions in the Vertopal CLI.

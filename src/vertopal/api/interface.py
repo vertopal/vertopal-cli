@@ -27,7 +27,7 @@ from pathlib import Path
 import platform
 from time import sleep
 from types import SimpleNamespace
-from typing import Dict, List, Optional
+from typing import Optional
 
 import requests
 
@@ -137,7 +137,7 @@ class _Interface:
         self,
         endpoint: str,
         method: str,
-        field_params: Optional[List[str]] = None,
+        field_params: Optional[list[str]] = None,
         version: Optional[str] = None,
     ) -> requests.Response:
         """
@@ -149,7 +149,7 @@ class _Interface:
                 leading slash.
             method (str): HTTP method to use, for example `"GET"` or
                 `"POST"`.
-            field_params (Optional[List[str]]): Optional list of
+            field_params (Optional[list[str]]): Optional list of
                 field assignments in the form `key=value` or
                 `key=@/path/to/file` for file uploads.
             version (Optional[str]): Optional API version string to
@@ -177,7 +177,7 @@ class _Interface:
 
         if field.file:
             with ExitStack() as stack:
-                files: List = []
+                files: list = []
                 for key, path in field.file.items():
                     file = Path(path)
                     files.append((
@@ -241,12 +241,12 @@ class _Interface:
         user_agent: str = f"{product}/{product_version} ({platform_full})"
         return user_agent
 
-    def _get_headers(self) -> Dict[str, str]:
+    def _get_headers(self) -> dict[str, str]:
         """
         Build standard headers for API requests.
 
         Returns:
-            Dict[str, str]: Headers containing `Authorization` and
+            dict[str, str]: Headers containing `Authorization` and
                 `User-Agent`.
         """
         return {
@@ -256,17 +256,17 @@ class _Interface:
 
     @staticmethod
     def __parse_field_parameters(
-        params: Optional[List[str]],
-        replace: Optional[Dict[str, str]] = None
+        params: Optional[list[str]],
+        replace: Optional[dict[str, str]] = None
     ) -> SimpleNamespace:
         """
         Parse a list of field parameter strings into structured `data`
         and `file` mappings.
 
         Args:
-            params (Optional[List[str]]): List of strings in the form
+            params (Optional[list[str]]): List of strings in the form
                 `key=value` or `key=@/path/to/file`.
-            replace (Optional[Dict[str, str]]): Optional mapping of
+            replace (Optional[dict[str, str]]): Optional mapping of
                 substrings to replace inside values.
 
         Returns:
@@ -286,14 +286,14 @@ class _Interface:
             >>> print(result.file)
             {'file1': '/path/to/file'}
         """
-        def _replace(text: str, replace_pair: Dict[str, str]) -> str:
+        def _replace(text: str, replace_pair: dict[str, str]) -> str:
             for replace_from, replace_to in replace_pair.items():
                 if replace_from and replace_to:
                     return text.replace(replace_from, replace_to)
             return text
 
-        data: Optional[Dict[str, str]] = None
-        file: Optional[Dict[str, str]] = None
+        data: Optional[dict[str, str]] = None
+        file: Optional[dict[str, str]] = None
 
         if not params:
             return SimpleNamespace(

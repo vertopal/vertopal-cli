@@ -24,7 +24,7 @@ from argparse import Namespace
 import json
 from pathlib import Path
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import requests
 
@@ -78,7 +78,7 @@ class _APIManager:
         # by the `API.request` method.
         # Adjust the following based on the actual argument names
         # used in your argparse configuration.
-        kwargs: Dict[str, Any] = {}
+        kwargs: dict[str, Any] = {}
         if hasattr(self._args, "endpoint") and self._args.endpoint:
             kwargs["endpoint"] = self._args.endpoint
         if hasattr(self._args, "method") and self._args.method:

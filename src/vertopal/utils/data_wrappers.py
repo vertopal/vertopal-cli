@@ -23,7 +23,7 @@ responses.
 
 from datetime import datetime, timedelta
 import json
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Iterator, Optional
 
 # No public names in this file
 __all__ = []
@@ -55,21 +55,21 @@ class _NestedPropertyWrapper:
         {'result': {'output': {'status': 'success'}}}
     """
 
-    def __init__(self, data: Dict[Any, str]) -> None:
+    def __init__(self, data: dict[Any, str]) -> None:
         """
         Initializes the NestedPropertyWrapper instance.
 
         Args:
-            data (Dict[Any, str]): The dictionary data to wrap.
+            data (dict[Any, str]): The dictionary data to wrap.
         """
-        self._data: Dict[Any, str] = data
+        self._data: dict[Any, str] = data
 
-    def to_dict(self) -> Dict[Any, str]:
+    def to_dict(self) -> dict[Any, str]:
         """
         Converts the wrapper back to the original dictionary.
 
         Returns:
-            Dict[Any, str]: The original dictionary data.
+            dict[Any, str]: The original dictionary data.
         """
         return self._data
 
@@ -313,15 +313,15 @@ class _ErrorWrapper:
 
     def _get_by_path(
         self,
-        data: Dict[str, Any],
-        path: List[str],
+        data: dict[str, Any],
+        path: list[str],
     ) -> Optional[Any]:
         """
         Traverses the dictionary following the list of keys.
         
         Args:
-            data (Dict[str, Any]): The dictionary to traverse.
-            path (List[str]): A sequence of keys indicating
+            data (dict[str, Any]): The dictionary to traverse.
+            path (list[str]): A sequence of keys indicating
                 the nested structure.
             
         Returns:

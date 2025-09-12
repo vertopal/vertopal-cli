@@ -26,7 +26,7 @@ API suitable for consistent CLI formatting across the project.
 import os
 import re
 import sys
-from typing import Any, ClassVar, Dict, List, Optional, TextIO
+from typing import Any, ClassVar, Optional, TextIO
 
 # Define public names for external usage
 __all__ = [
@@ -47,7 +47,7 @@ class Prism:
     and render styled text with custom tags or predefined styles.
 
     Attributes:
-        ANSI_CODES (ClassVar[Dict[str, str]]): A dictionary
+        ANSI_CODES (ClassVar[dict[str, str]]): A dictionary
             mapping style names to ANSI escape codes.
         RESET (str): ANSI reset code to revert styling.
         TAG_RE (Pattern): Regular expression for identifying
@@ -107,7 +107,7 @@ class Prism:
         ... )
     """
 
-    ANSI_CODES: ClassVar[Dict[str, str]] = {
+    ANSI_CODES: ClassVar[dict[str, str]] = {
         "black": "\033[30m",
         "blue": "\033[94m",
         "cyan": "\033[96m",
@@ -160,7 +160,7 @@ class Prism:
             str: A string with ANSI escape codes applied
             for terminal rendering.
         """
-        stack: List[str] = [] # To keep track of open tags
+        stack: list[str] = [] # To keep track of open tags
         output: str = "" # To build the final output string
         pos: int = 0 # Current position in the string
 
@@ -221,7 +221,7 @@ class Prism:
         Returns:
             str: The styled text with ANSI codes applied.
         """
-        output: List[str] = []
+        output: list[str] = []
 
         if style:
             for style_token in style.split():

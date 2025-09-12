@@ -26,7 +26,7 @@ from datetime import datetime
 import fnmatch
 from pathlib import Path
 import re
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 # No public names in this file
 __all__ = []
@@ -139,7 +139,7 @@ def _shorten_filename(
     return f"{start}{separator}{end}.{ext}"
 
 
-def _split_into_lines(text: str, max_length: int = 79) -> List[str]:
+def _split_into_lines(text: str, max_length: int = 79) -> list[str]:
     """
     Splits the given text into lines, each with a maximum length
     while preserving word integrity.
@@ -151,7 +151,7 @@ def _split_into_lines(text: str, max_length: int = 79) -> List[str]:
             for docstring lines.
 
     Returns:
-        List[str]: A list of lines where each line does not exceed
+        list[str]: A list of lines where each line does not exceed
         the specified maximum length.
 
     Example:
@@ -180,7 +180,7 @@ def _split_into_lines(text: str, max_length: int = 79) -> List[str]:
     return lines
 
 
-def _remove_duplicates_preserve_order(old_list: List[Any]) -> List[Any]:
+def _remove_duplicates_preserve_order(old_list: list[Any]) -> list[Any]:
     """
     Remove duplicate entries from a list while preserving
     the original order.
@@ -191,11 +191,11 @@ def _remove_duplicates_preserve_order(old_list: List[Any]) -> List[Any]:
     in the returned list.
 
     Args:
-        old_list (List[Any]): The input list from which duplicates
+        old_list (list[Any]): The input list from which duplicates
             should be removed.
 
     Returns:
-        List[Any]: A new list containing unique elements
+        list[Any]: A new list containing unique elements
         from the input list in their original order.
 
     Example:
@@ -315,7 +315,7 @@ def _canonicalize_format(fmt: Optional[str]) -> Optional[str]:
     return fmt or None
 
 
-def _expand_braces(pattern: str) -> List[str]:
+def _expand_braces(pattern: str) -> list[str]:
     """
     Expand brace patterns like {a,b,c} or {1..5}.
     Handles multiple braces in a single pattern.
@@ -324,7 +324,7 @@ def _expand_braces(pattern: str) -> List[str]:
         pattern (str): Pattern that may contain brace expansions.
     
     Returns:
-        List[str]: List of expanded patterns.
+        list[str]: List of expanded patterns.
     
     Example:
 
@@ -383,7 +383,7 @@ def _expand_braces(pattern: str) -> List[str]:
     return results
 
 
-def _expand_brackets(pattern: str) -> List[str]:
+def _expand_brackets(pattern: str) -> list[str]:
     """
     Expand bracket patterns like [abc] or [0-9].
     Handles multiple brackets in a single pattern.
@@ -417,7 +417,7 @@ def _expand_brackets(pattern: str) -> List[str]:
     return results
 
 
-def _expand_all_patterns(pattern: str) -> List[str]:
+def _expand_all_patterns(pattern: str) -> list[str]:
     """Expand both brace and bracket patterns in a single pattern."""
     brace_expanded = _expand_braces(pattern)
     all_expanded = []
@@ -429,14 +429,14 @@ def _expand_all_patterns(pattern: str) -> List[str]:
 
 def _should_exclude_file(
     file_path: Path,
-    exclude_patterns: Optional[List[str]],
+    exclude_patterns: Optional[list[str]],
 ) -> bool:
     """
     Enhanced exclusion with multiple pattern types.
     
     Args:
         file_path (Path): Path to check for exclusion.
-        exclude_patterns (Optional[List[str]]): Patterns to exclude.
+        exclude_patterns (Optional[list[str]]): Patterns to exclude.
 
     Returns:
         bool: `True` if file should be excluded, `False` otherwise.
@@ -480,7 +480,7 @@ def _should_exclude_file(
 
 def _should_include_file(
     file_path: Path,
-    exclude_patterns: Optional[List[str]] = None,
+    exclude_patterns: Optional[list[str]] = None,
     modified_since: Optional[str] = None,
 ) -> bool:
     """
@@ -488,7 +488,7 @@ def _should_include_file(
     
     Args:
         file_path (Path): Path to check.
-        exclude_patterns (Optional[List[str]]): Patterns to exclude.
+        exclude_patterns (Optional[list[str]]): Patterns to exclude.
         modified_since (Optional[str]): Date filter (YYYY-MM-DD).
     
     Returns:
@@ -519,22 +519,22 @@ def _should_include_file(
 
 
 def _enhanced_expand_inputs(
-    inputs: List[str],
+    inputs: list[str],
     recursive: bool = False,
-    exclude_patterns: Optional[List[str]] = None,
+    exclude_patterns: Optional[list[str]] = None,
     modified_since: Optional[str] = None,
-) -> List[Path]:
+) -> list[Path]:
     """
     Enhanced input expansion with better pattern support.
     
     Args:
-        inputs (List[str]): List of input patterns.
+        inputs (list[str]): List of input patterns.
         recursive (bool): Whether to enable recursive directory search.
-        exclude_patterns (Optional[List[str]]): Patterns to exclude.
+        exclude_patterns (Optional[list[str]]): Patterns to exclude.
         modified_since (Optional[str]): Date filter (YYYY-MM-DD).
     
     Returns:
-        List[Path]: List of expanded file paths.
+        list[Path]: List of expanded file paths.
     
     Example:
 

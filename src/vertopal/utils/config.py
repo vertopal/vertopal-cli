@@ -27,7 +27,7 @@ inspection.
 import configparser
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from vertopal import settings
 from vertopal.types import PathType
@@ -54,9 +54,9 @@ class _Config:
             the `Config` class.
         _initialized (bool): Tracks whether the Singleton
             has already been initialized.
-        _default_config (Dict[str, Dict[str, Any]]): Stores default
+        _default_config (dict[str, dict[str, Any]]): Stores default
             configuration values.
-        _config (Dict[str, Dict[str, Any]]): Holds user-specific
+        _config (dict[str, dict[str, Any]]): Holds user-specific
             configuration values.
 
     Example:
@@ -103,7 +103,7 @@ class _Config:
 
         # Initialize attributes
         self._default_config = settings.DEFAULT_CONFIG.copy()
-        self._config: Dict[str, Dict[str, Any]] = {}
+        self._config: dict[str, dict[str, Any]] = {}
         self._current_config_path = user_config_path
 
         # Load user-specific configurations if file exists

@@ -28,7 +28,7 @@ from pathlib import Path
 import signal
 import threading
 from time import sleep
-from typing import List, Literal, Optional, Tuple
+from typing import Literal, Optional
 
 from vertopal import settings
 from vertopal.api.converter import Converter, _Conversion
@@ -184,7 +184,7 @@ class _ConversionManager:
             error_message = str(e)
             print(error_message)
 
-    def _read_file_list(self, file_list_path: str) -> List[str]:
+    def _read_file_list(self, file_list_path: str) -> list[str]:
         """
         Read file paths from a file list.
 
@@ -193,7 +193,7 @@ class _ConversionManager:
                 paths.
 
         Returns:
-            List[str]: List of file paths.
+            list[str]: List of file paths.
         """
         try:
             with open(file_list_path, "r", encoding="utf-8") as file:
@@ -204,27 +204,27 @@ class _ConversionManager:
 
     def _expand_inputs(
         self,
-        inputs: List[str],
+        inputs: list[str],
         recursive: bool,
-        exclude_patterns: Optional[List[str]],
+        exclude_patterns: Optional[list[str]],
         modified_since: Optional[str],
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Expand wildcard patterns and traverse directories based on
         options.
 
         Args:
-            inputs (List[str]): List of input files, directories, or
+            inputs (list[str]): List of input files, directories, or
                 patterns.
             recursive (bool): Whether to enable recursive directory
                 search.
-            exclude_patterns (Optional[List[str]]): Patterns to
+            exclude_patterns (Optional[list[str]]): Patterns to
                 exclude.
             modified_since (Optional[str]): Date filter for
                 modification (YYYY-MM-DD).
 
         Returns:
-            List[str]: Expanded list of file paths.
+            list[str]: Expanded list of file paths.
         """
         # Use enhanced input expansion
         expanded_paths = _enhanced_expand_inputs(
@@ -239,7 +239,7 @@ class _ConversionManager:
 
     def _convert_files(
         self,
-        files: List[str],
+        files: list[str],
         input_format: Optional[str],
         output_format: str,
         # overwrite: bool,
@@ -249,7 +249,7 @@ class _ConversionManager:
         Convert files based on input format and output format.
 
         Args:
-            files (List[str]): List of files to convert.
+            files (list[str]): List of files to convert.
             input_format (Optional[str]): Source file format[-type].
             output_format (str): Target file format[-type].
         """
@@ -454,7 +454,7 @@ class _ConversionTask:
     def _wait(
         self,
         conversion: _Conversion,
-        timeout_pattern: Tuple[int, ...] = settings.SLEEP_PATTERN,
+        timeout_pattern: tuple[int, ...] = settings.SLEEP_PATTERN,
     ) -> bool:
         """
         Block until the internal shutdown event flag is set or
@@ -462,7 +462,7 @@ class _ConversionTask:
 
         Args:
             conversion (_Conversion): The conversion instance.
-            timeout_pattern (Tuple[int, ...]): Sequence of timeout
+            timeout_pattern (tuple[int, ...]): Sequence of timeout
                 durations (in seconds) for retries. Defaults to
                 `settings.SLEEP_PATTERN`.
 
