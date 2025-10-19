@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes currently in progress or planned for future versions will appear here.*
 
+### 🐛 Fixed
+
+- Explicitly use `.value` for `InterfaceStrategyMode` and `InterfaceSublistMode` to ensure consistent string output across Python versions (avoiding f-string differences introduced after Python 3.10).
+
 ### 🛠 Changed
 
 - Refactored type hints to use built-in generics (`list`, `dict`, and `tuple`) instead of `typing.List`, `typing.Dict`, and `typing.Tuple`.
