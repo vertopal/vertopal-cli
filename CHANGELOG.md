@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes currently in progress or planned for future versions will appear here.*
 
+### ✨ Added
+
+- Support for configurable upload and download chunk sizes:
+  - New settings: `stream_upload_chunk_size` and `stream_download_chunk_size` (fall back to `stream_chunk_size` if unset).
+  - New `_ChunkedFileWrapper` internal utility to enforce fixed chunk sizes during streaming.
+  - New `_Interface.upload_chunk_size` and `_Interface.download_chunk_size` properties to resolve effective chunk sizes.
+  - `API.upload_file` now accepts an optional `chunk_size` parameter, defaulting to configuration values.
+
 ### 🐛 Fixed
 
 - Explicitly use `.value` for `InterfaceStrategyMode` and `InterfaceSublistMode` to ensure consistent string output across Python versions (avoiding f-string differences introduced after Python 3.10).
