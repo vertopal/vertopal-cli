@@ -80,7 +80,17 @@ DEFAULT_CONFIG: dict[str, dict[str, Any]] = {
         "long_timeout": 300,
 
         # Default chunk size for streaming in bytes.
+        # This value is used for both uploads and downloads unless
+        # overridden by the more specific settings below.
         "stream_chunk_size": 4096,
+
+        # Optional override for upload streaming chunk size in bytes.
+        # If set to None, the global "stream_chunk_size" is used.
+        "stream_upload_chunk_size": None,
+
+        # Optional override for download streaming chunk size in bytes.
+        # If set to None, the global "stream_chunk_size" is used.
+        "stream_download_chunk_size": None,
     }
 }
 

@@ -428,3 +428,35 @@ class _Interface:
                 )
             )
         self._user_agent_product = value
+
+    @property
+    def upload_chunk_size(self) -> int:
+        """Effective chunk size (in bytes) to use for streaming uploads."""
+        return (
+            self._config.get(
+                "connection_settings",
+                "stream_upload_chunk_size",
+                cast=int,
+            )
+            or self._config.get(
+                "connection_settings",
+                "stream_chunk_size",
+                cast=int,
+            )
+        )
+
+    @property
+    def download_chunk_size(self) -> int:
+        """Effective chunk size (in bytes) to use for streaming downloads."""
+        return (
+            self._config.get(
+                "connection_settings",
+                "stream_download_chunk_size",
+                cast=int,
+            )
+            or self._config.get(
+                "connection_settings",
+                "stream_chunk_size",
+                cast=int,
+            )
+        )

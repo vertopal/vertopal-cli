@@ -434,3 +434,79 @@ class _ErrorWrapper:
             ):
                 warnings.append(warning)
         return warnings
+
+
+class _ChunkedFileWrapper:
+    """
+    Internal file-like wrapper that enforces a fixed chunk size
+    when reading from an underlying binary stream.
+
+    This wrapper is primarily used during streaming uploads to
+    control the maximum number of bytes read per call to `.read()`.
+    It ensures predictable chunk sizes regardless of the size hint
+    provided by the caller.
+
+    Attributes:
+        _file (BinaryIO): The underlying binary file-like object.
+        _chunk_size (int): The maximum number of bytes to read per call.
+
+    Example:
+
+        >>> import io
+        >>> buf = io.BytesIO(b"abcdefghij")
+        >>> wrapper = _ChunkedFileWrapper(buf, chunk_size=4)
+        >>> wrapper.read()
+        b'abcd'
+        >>> wrapper.read()
+        b'efgh'
+        >>> wrapper.read()
+        b'ij'
+    """
+
+    def __init__(self, file, chunk_size: int):
+        """
+        Initialize the wrapper.
+
+        Args:
+            file (BinaryIO): The underlying file-like object opened in
+                binary mode.
+            chunk_size (int): The maximum number of bytes to read
+                per call.
+        """
+        self._file = file
+        self._chunk_size = chunk_size
+
+    def read(self, size=-1) -> bytes:
+        """
+        Read up to `chunk_size` bytes from the underlying file.
+
+        Args:
+            size (int, optional): The number of bytes requested by the
+                caller. If negative or larger than `chunk_size`, the
+                enforced `chunk_size` is used instead. Defaults to `-1`.
+
+        Returns:
+            bytes: The next chunk of data from the file. Returns an empty
+            bytes object when the end of file is reached.
+        """
+        if size < 0 or size > self._chunk_size:
+            size = self._chunk_size
+        return self._file.read(size)
+
+    def __getattr__(self, name):
+        """
+        Delegate attribute access to the underlying file object.
+
+        This allows the wrapper to behave like the wrapped file,
+        exposing methods such as `.close()`, `.seek()`, `.tell()`, etc.
+
+        Args:
+            name (str): The attribute name being accessed.
+
+        Returns:
+            Any: The attribute from the underlying file object.
+
+        Raises:
+            AttributeError: If the attribute does not exist on the file.
+        """
+        return getattr(self._file, name)

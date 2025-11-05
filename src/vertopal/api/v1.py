@@ -41,6 +41,7 @@ from vertopal.api.interface import _Interface
 from vertopal.api.response import _CustomResponse
 from vertopal.enums import InterfaceStrategyMode, InterfaceSublistMode
 from vertopal.io.protocols import Readable, Writable
+from vertopal.utils.data_wrappers import _ChunkedFileWrapper
 
 # Define public names for external usage
 __all__ = [
@@ -78,12 +79,20 @@ class API(_Interface):
         super().__init__(credential=credential)
         self.version = 1
 
-    def upload_file(self, readable: Readable) -> _CustomResponse:
+    def upload_file(
+        self,
+        readable: Readable,
+        *,
+        chunk_size: Optional[int] = None,
+        ) -> _CustomResponse:
         """
         Upload a file to the Vertopal server.
 
         Args:
             readable (Readable): The readable to read the file from.
+            chunk_size (Optional[int]): Number of bytes to upload per
+                chunk. When `None`, the value is read from
+                the configuration.
 
         Returns:
             _CustomResponse: Response wrapper with upload details and
@@ -93,7 +102,15 @@ class API(_Interface):
         filename = readable.filename or "upload.bin"
         content_type = readable.content_type or "application/octet-stream"
 
+        if chunk_size:
+            stream_chunk_size: int = chunk_size
+        else:
+            stream_chunk_size: int = self.upload_chunk_size
+
         with readable.open() as file:
+            # Stream file in chunks
+            file_obj = _ChunkedFileWrapper(file, stream_chunk_size)
+
             response = self.send_request(
                 path="/upload/file",
                 method="POST",
@@ -104,7 +121,7 @@ class API(_Interface):
                 },
                 files=[(
                     "file",
-                    (filename, file, content_type)
+                    (filename, file_obj, content_type)
                 )],
                 timeout=self.long_timeout,
             )
@@ -251,16 +268,12 @@ class API(_Interface):
                 result to download.
             chunk_size (Optional[int]): Number of bytes to request per
                 streamed chunk. When `None`, the value is read from
-                configuration (`connection_settings.stream_chunk_size`).
+                configuration.
         """
         if chunk_size:
             stream_chunk_size: int = chunk_size
         else:
-            stream_chunk_size: int = self._config.get(
-                "connection_settings",
-                "stream_chunk_size",
-                cast=int,
-            )
+            stream_chunk_size: int = self.download_chunk_size
 
         args = {
             "path": "/download/url/get",
