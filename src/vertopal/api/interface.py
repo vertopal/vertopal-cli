@@ -112,8 +112,12 @@ class _Interface:
             try:
                 response = self._session.request(method, url, **kwargs)
 
-                # Only validate JSON if not downloading binary content
-                if path not in ("/download/url/get", ):
+                content_type: Optional[str] = response.headers.get(
+                    "Content-Type",
+                    None,
+                )
+
+                if content_type and content_type == "application/json":
                     ExceptionHandler.raise_for_response(response.json())
 
                 return _CustomResponse(response)
