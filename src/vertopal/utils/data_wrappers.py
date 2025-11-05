@@ -23,7 +23,7 @@ responses.
 
 from datetime import datetime, timedelta
 import json
-from typing import Any, Iterator, Optional
+from typing import Any, BinaryIO, Iterator, Optional
 
 # No public names in this file
 __all__ = []
@@ -463,9 +463,9 @@ class _ChunkedFileWrapper:
         b'ij'
     """
 
-    def __init__(self, file, chunk_size: int):
+    def __init__(self, file: BinaryIO, chunk_size: int):
         """
-        Initialize the wrapper.
+        Initialize the wrapper around a binary file-like object.
 
         Args:
             file (BinaryIO): The underlying file-like object opened in
@@ -476,24 +476,29 @@ class _ChunkedFileWrapper:
         self._file = file
         self._chunk_size = chunk_size
 
-    def read(self, size=-1) -> bytes:
+    def read(self, size: int = -1) -> bytes:
         """
         Read up to `chunk_size` bytes from the underlying file.
 
         Args:
             size (int, optional): The number of bytes requested by the
-                caller. If negative or larger than `chunk_size`, the
-                enforced `chunk_size` is used instead. Defaults to `-1`.
+                caller.
+                - If negative (default), all remaining data is read.
+                - If positive and larger than `chunk_size`, the read
+                  size is capped at `chunk_size`.
+                - Otherwise, reads exactly `size` bytes.
 
         Returns:
-            bytes: The next chunk of data from the file. Returns an empty
-            bytes object when the end of file is reached.
+            bytes: The next chunk of data from the file. Returns an
+            empty bytes object when the end of file is reached.
         """
-        if size < 0 or size > self._chunk_size:
-            size = self._chunk_size
+        if size < 0:
+            # Caller explicitly asked for "all remaining data"
+            return self._file.read()
+        size = min(size, self._chunk_size)
         return self._file.read(size)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         """
         Delegate attribute access to the underlying file object.
 
