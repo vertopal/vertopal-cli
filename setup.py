@@ -18,7 +18,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="vertopal",
-    version="2.0.3",
+    version="2.1.0",
     description="Convert your files in terminal using Vertopal API",
     long_description=long_description,
     long_description_content_type="text/markdown",

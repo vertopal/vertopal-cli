@@ -53,7 +53,7 @@ Example:
 __author__: str = "Vertopal"
 __copyright__: str = "Copyright (c) 2023-2025 Vertopal"
 __license__: str = "MIT License"
-__version__: str = "2.0.3"
+__version__: str = "2.1.0"
 __description__: str = (
     "Command-line and Python interface "
     "for converting digital files via Vertopal API"
