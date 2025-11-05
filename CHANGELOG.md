@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🐛 Fixed
 
+- Corrected `send_request` JSON validation logic to check the `Content-Type` header instead of endpoint path, preventing errors when handling binary responses (e.g., file downloads).
 - Explicitly use `.value` for `InterfaceStrategyMode` and `InterfaceSublistMode` to ensure consistent string output across Python versions (avoiding f-string differences introduced after Python 3.10).
 
 ### 🛠 Changed
