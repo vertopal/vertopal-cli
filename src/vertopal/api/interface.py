@@ -117,7 +117,7 @@ class _Interface:
                     None,
                 )
 
-                if content_type and content_type == "application/json":
+                if content_type and content_type.startswith("application/json"):
                     ExceptionHandler.raise_for_response(response.json())
 
                 return _CustomResponse(response)
