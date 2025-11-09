@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes currently in progress or planned for future versions will appear here.*
 
+### 🐛 Fixed
+
+- Improved JSON response detection in `vertopal.api.interface._Interface.send_request`
+  to correctly handle `Content-Type` headers with parameters (e.g. `application/json; charset=utf-8`).
+
 ## [2.1.0] - 2025-11-05
 
 ### ✨ Added
