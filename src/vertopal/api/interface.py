@@ -35,7 +35,7 @@ from vertopal import settings, __version__
 from vertopal.api.credential import Credential
 from vertopal.api.response import _CustomResponse
 import vertopal.exceptions as vex
-from vertopal.utils.config import _Config
+from vertopal.utils.config import Config
 from vertopal.utils.exception_handler import ExceptionHandler
 
 # No public names in this file
@@ -65,7 +65,7 @@ class _Interface:
                 instance. If not provided, credentials are loaded from
                 configuration.
         """
-        self._config: _Config = _Config()
+        self._config: Config = Config()
         self._user_agent_product = settings.USER_AGENT_PRODUCT_LIB
 
         if not credential:

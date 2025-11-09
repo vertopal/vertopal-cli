@@ -31,6 +31,8 @@ Attributes:
 
 Example:
 
+    Using Converter:
+
     >>> from vertopal import Converter
     >>> from vertopal import __version__  # Access package version
     >>> from vertopal.io import FileInput, FileOutput
@@ -48,6 +50,18 @@ Example:
     ...     print(conversion.credits_used, "credit(s) used.")
     ... 
     '1 credit(s) used.'
+
+    Using Config:
+
+    >>> from vertopal import Config
+    >>> config = Config()
+    >>> config.update({"api": {"app": "my-app-id"}})
+    >>> config.get("api", "app")
+    'my-app-id'
+    >>> config.clear_overrides()
+    >>> config.get("api", "app")
+    'free'
+
 """
 
 __author__: str = "Vertopal"
@@ -62,8 +76,10 @@ __email__: str = "contact@vertopal.com"
 __url__: str = "https://github.com/vertopal/vertopal-cli"
 
 from vertopal.api.converter import Converter
+from vertopal.utils.config import Config
 
 # Define public names for external usage
 __all__ = [
     "Converter",
+    "Config",
 ]

@@ -6,8 +6,8 @@
 # Issues: https://github.com/vertopal/vertopal-cli/issues
 #
 # Description:
-#   Internal configuration management for the Vertopal client.
-#   Implements a Singleton `_Config` class to load, retrieve, update,
+#   Configuration management for the Vertopal client.
+#   Implements a Singleton `Config` class to load, retrieve, update,
 #   and persist global settings from an INI‑formatted file, with
 #   programmatic defaults defined in `vertopal.settings`. User‑specific
 #   values, if present, override these defaults. The configuration
@@ -17,7 +17,7 @@
 """
 Configuration helper for reading and writing user settings.
 
-This module implements the `_Config` singleton which provides a
+This module implements the `Config` singleton which provides a
 convenient API to access default and user-specific settings. It
 wraps an INI-style configuration file and offers typed `get`, `set`,
 and `save` methods as well as a read-only `config_dict` snapshot for
@@ -32,14 +32,15 @@ from typing import Any, Callable, Optional, Union
 from vertopal import settings
 from vertopal.types import PathType
 
-# No public names in this file
-__all__ = []
+# Define public names for external usage
+__all__ = [
+    "Config",
+]
 
 
-class _Config:
+class Config:
     """
-    Provides get, set, and save methods for accessing
-    global configuration.
+    Public configuration manager for Vertopal
 
     The configuration file is INI-structured and located in the user's
     home directory by default. Default values for the configuration are
@@ -47,9 +48,26 @@ class _Config:
     and are overridden by user-specific values
     if the configuration file exists.
 
+    Resolution priority (highest to lowest):
+        1. Explicit Credential passed to API/Converter (outside Config)
+        2. In-memory overrides (Config._overrides)
+        3. Persistent user config (Config._config, loaded from INI file)
+        4. Package defaults (settings.DEFAULT_CONFIG)
+        5. Fallback parameter provided to get()
+
+    Public API:
+      - `update()`: override values in memory
+      - `clear_overrides()`: reset overrides
+      - `get()`: read current values
+
+    Internal-use methods (not exported in `__all__`):
+      - `set()`, `save()`, `remove()`
+
     Attributes:
         SAVE_TO_OPENED_FILE (str): A flag to save to the file loaded
             during initialization.
+        _SENSITIVE_KEYS: tuple[str, ...] = The keys to mask in string
+            representations to avoid accidental disclosure in logs.
         _instance (Config): Holds the Singleton instance of
             the `Config` class.
         _initialized (bool): Tracks whether the Singleton
@@ -63,10 +81,14 @@ class _Config:
 
         >>> from vertopal.utils.config import Config
         >>> config = Config()
-        >>> config.set("api", "app", "my-app-id")
+        >>> config.get("api", "app")
+        'free'
+        >>> config.override({"api": {"app": "my-app-id"}})
         >>> config.get("api", "app")
         'my-app-id'
-        >>> config.save()
+        >>> config.clear_overrides()
+        >>> config.get("api", "app")
+        'free'
 
     Notes:
         - The configuration file should follow the INI structure.
@@ -74,6 +96,12 @@ class _Config:
     """
     # Class-level flag(s)
     SAVE_TO_OPENED_FILE = 1
+
+    _SENSITIVE_KEYS: tuple[str, ...] = (
+        "token",
+        "password",
+        "secret",
+    )
 
     _instance = None  # Class-level instance for Singleton
     _initialized = False  # Declare '_initialized' at the class level
@@ -91,7 +119,7 @@ class _Config:
         self,
         user_config_path: PathType = settings.USER_CONFIG_PATH,
     ):
-        if _Config._initialized:
+        if Config._initialized:
             # Avoid reinitialization
             return
 
@@ -103,7 +131,10 @@ class _Config:
 
         # Initialize attributes
         self._default_config = settings.DEFAULT_CONFIG.copy()
+        # Loaded from INI file
         self._config: dict[str, dict[str, Any]] = {}
+        # Runtime-only overrides
+        self._overrides: dict[str, dict[str, Any]] = {}
         self._current_config_path = user_config_path
 
         # Load user-specific configurations if file exists
@@ -114,17 +145,25 @@ class _Config:
                 self._config[section] = dict(parser.items(section))
 
         # Mark as initialized
-        _Config._initialized = True
+        Config._initialized = True
 
     def get(
         self,
         section: str,
         key: str,
         fallback: Any = None,
+        *,
         cast: Optional[Callable[[Any], Any]] = None,
     ) -> Any:
         """
         Fetch a value from the configuration.
+
+        Resolution priority (highest to lowest):
+            1. Explicit Credential passed to API/Converter (outside Config)
+            2. In-memory overrides (Config._overrides)
+            3. Persistent user config (Config._config, loaded from INI file)
+            4. Package defaults (settings.DEFAULT_CONFIG)
+            5. Fallback parameter provided to get()
 
         Args:
             section (str): The section in the configuration file.
@@ -144,14 +183,13 @@ class _Config:
                 if not found.
         """
         try:
-            value = self._config[section][key]
+            value = self._overrides[section][key]
         except KeyError:
             try:
-                value = self._default_config[section][key]
+                value = self._config[section][key]
             except KeyError:
-                return fallback
+                value = self._default_config.get(section, {}).get(key, fallback)
 
-        # Apply the cast function if provided and value is not None
         if cast and value is not None:
             try:
                 value = cast(value)
@@ -160,9 +198,35 @@ class _Config:
 
         return value
 
+    def update(self, overrides: dict[str, dict[str, Any]], /) -> None:
+        """
+        Merge new override values into the in-memory overrides dict.
+
+        Args:
+            overrides (dict[str, dict[str, Any]]): Mapping of sections
+            to key/value pairs. These values take precedence over both
+            user config and defaults, but are not persisted to disk.
+        """
+        for section, values in overrides.items():
+            if section not in self._overrides:
+                self._overrides[section] = {}
+            self._overrides[section].update(values)
+
+    def clear_overrides(self) -> None:
+        """
+        Remove all in-memory overrides, restoring config resolution
+        to user config and defaults only.
+        """
+        self._overrides.clear()
+
     def set(self, section: str, key: str, value: Any) -> None:
         """
+        [INTERNAL USE ONLY]
+
         Update or add a value in the configuration.
+
+        This method is intended for use by Vertopal's internal
+        modules and is not part of the public developer API.
 
         Args:
             section (str): The section in the configuration file.
@@ -177,6 +241,8 @@ class _Config:
 
     def remove(self, section: str, key: Optional[str] = None) -> None:
         """
+        [INTERNAL USE ONLY]
+
         Remove a configuration key or an entire section
         from the configuration.
 
@@ -185,6 +251,9 @@ class _Config:
         and all its keys are removed. This flexible approach allows you
         to either remove a single configuration item or clean out
         a section completely.
+
+        This method is intended for use by Vertopal's internal
+        modules and is not part of the public developer API.
 
         Args:
             section (str): The configuration section
@@ -220,6 +289,8 @@ class _Config:
         path: Union[PathType, int] = SAVE_TO_OPENED_FILE,
     ) -> None:
         """
+        [INTERNAL USE ONLY]
+
         Save the updated configuration to the user-defined file.
 
         If an integer flag is passed (e.g.,
@@ -227,6 +298,9 @@ class _Config:
         the configuration to the file loaded during initialization.
         If a `Path` or string object is passed, the configuration
         is saved to the specified file path.
+
+        This method is intended for use by Vertopal's internal
+        modules and is not part of the public developer API.
 
     Args:
         user_config_path (Union[PathType, int], optional): The path
@@ -252,7 +326,7 @@ class _Config:
         >>> config.save("/home/user/new_config.ini")
         >>> # Saves to "/home/user/new_config.ini"
         """
-        if path == _Config.SAVE_TO_OPENED_FILE:
+        if path == Config.SAVE_TO_OPENED_FILE:
             path = self._current_config_path  # Use the opened file path
 
         parser = configparser.ConfigParser()
@@ -263,10 +337,20 @@ class _Config:
     def __str__(self) -> str:
         """
         Return a human-readable string representation
-        of the configuration.
+        of the configuration, masking sensitive values.
         """
+        def mask(key: str, value: Any) -> Any:
+            if key.lower() in self._SENSITIVE_KEYS and isinstance(value, str):
+                return f"{value[:3]}***"
+            return value
+
         config_items = "\n".join(
-            f"{section}: {dict(items)}"
+            f"{section}: {{"
+            + ", ".join(
+                f"{k}={mask(k, v)}"
+                for k, v in items.items()
+            )
+            + "}"
             for section, items in self._config.items()
         )
         return f"Current Configuration:\n{config_items}"
@@ -274,12 +358,13 @@ class _Config:
     def __repr__(self) -> str:
         """
         Return a developer-friendly string representation
-        of the Config object.
+        of the Config object, without exposing secrets.
         """
         return (
             f"{type(self).__name__}("
             f"user_config_path={repr(self._user_config_path)}, "
-            f"_initialized={self._initialized})"
+            f"_initialized={self._initialized}, "
+            f"overrides={bool(self._overrides)})"
         )
 
     @property

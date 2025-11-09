@@ -6,22 +6,22 @@
 # Issues: https://github.com/vertopal/vertopal-cli/issues
 #
 # Description:
-#   Command-line wrapper for the _Config singleton, managing user-specific
+#   Command-line wrapper for the Config singleton, managing user-specific
 #   INI-style configuration for Vertopal CLI. Translates argparse Namespace
 #   flags into configuration operations and persists changes as needed.
 
 """
-Command-line wrapper around the `_Config` singleton used to manage
+Command-line wrapper around the `Config` singleton used to manage
 user-specific INI-style configuration for the Vertopal CLI.
 
 This module translates argparse `Namespace` flags into calls to
-`_Config.get`, `_Config.set`, `_Config.remove` and saves changes when
+`Config.get`, `Config.set`, `Config.remove` and saves changes when
 necessary.
 """
 
 from argparse import Namespace
 
-from vertopal.utils.config import _Config
+from vertopal.utils.config import Config
 
 # No public names in this file
 __all__ = []
@@ -29,7 +29,7 @@ __all__ = []
 
 class _ConfigManager:
     """
-    Manager for configuration operations using the `_Config` class.
+    Manager for configuration operations using the `Config` class.
 
     This adapter processes command-line arguments from an argparse
     `Namespace` and performs configuration operations such as listing,
@@ -46,7 +46,7 @@ class _ConfigManager:
                 from argparse.
         """
         self._args = args
-        self._config = _Config()
+        self._config = Config()
 
     def run(self) -> None:
         """
