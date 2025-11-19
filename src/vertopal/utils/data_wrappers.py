@@ -22,7 +22,9 @@ responses.
 """
 
 from datetime import datetime, timedelta
+from io import UnsupportedOperation
 import json
+import os
 from typing import Any, BinaryIO, Iterator, Optional
 
 # No public names in this file
@@ -475,6 +477,12 @@ class _ChunkedFileWrapper:
         """
         self._file = file
         self._chunk_size = chunk_size
+        # Always rewind to the start of the file
+        try:
+            self._file.seek(0)
+        except (AttributeError, OSError, UnsupportedOperation):
+            # If the underlying object doesn't support seek, ignore
+            pass
 
     def read(self, size: int = -1) -> bytes:
         """
@@ -497,6 +505,57 @@ class _ChunkedFileWrapper:
             return self._file.read()
         size = min(size, self._chunk_size)
         return self._file.read(size)
+
+    def __iter__(self):
+        """
+        Return an iterator over the file stream.
+
+        This enables the wrapper to be used in iteration contexts
+        (e.g., `for chunk in wrapper:`), yielding successive chunks
+        of data until the end of the file is reached.
+
+        Returns:
+            _ChunkedFileWrapper: The wrapper itself, which acts as
+                its own iterator.
+        """
+        return self
+
+    def __next__(self):
+        """
+        Read and return the next chunk of data from the file.
+
+        Each call retrieves up to `chunk_size` bytes. When the end of
+        the file is reached, a `StopIteration` exception is raised to
+        signal that iteration is complete.
+
+        Returns:
+            bytes: The next chunk of file data.
+
+        Raises:
+            StopIteration: If no more data is available in the file.
+        """
+        chunk = self.read(self._chunk_size)
+        if not chunk:
+            raise StopIteration
+        return chunk
+
+    def __len__(self):
+        """
+        Return the total size of the underlying file in bytes.
+
+        This method seeks to the end of the file to determine its
+        length, then restores the original file pointer position.
+        It allows upload clients (such as `requests`) to know the full
+        size of the stream before starting the upload.
+
+        Returns:
+            int: The total number of bytes in the file.
+        """
+        current = self._file.tell()
+        self._file.seek(0, os.SEEK_END)
+        size = self._file.tell()
+        self._file.seek(current)
+        return size
 
     def __getattr__(self, name: str):
         """

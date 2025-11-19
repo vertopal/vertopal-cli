@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🐛 Fixed
 
+- Improved `_ChunkedFileWrapper` to rewind file streams before upload, preventing `EMPTY_FILE` errors and truncated uploads. Added `__len__`, `__iter__`, and `__next__` methods for better streaming client compatibility and chunk iteration.
 - Improved JSON response detection in `vertopal.api.interface._Interface.send_request`
   to correctly handle `Content-Type` headers with parameters (e.g. `application/json; charset=utf-8`).
 
