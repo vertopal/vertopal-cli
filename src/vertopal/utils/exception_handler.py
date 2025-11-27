@@ -76,6 +76,11 @@ ERROR_CODE_MAP = {
     "INVALID_INPUT_FORMAT": vex.InvalidInputFormatError,
     "NO_CONVERTER_INPUT_TO_OUTPUT": vex.NoConverterInputToOutputError,
     "NOT_MATCH_EXTENSION_AND_INPUT": vex.NotMatchExtensionAndInputError,
+    "TOO_MANY_REQUESTS": vex.TooManyRequestsError,
+    "FREE_APP_LIMITED": vex.FreeAppLimitedError,
+    "DISABLED_FOR_FREE_APP": vex.DisabledForFreeAppError,
+    "WRONG_FORMAT_STRUCTURE": vex.WrongFormatStructureError,
+    "INVALID_FORMAT": vex.InvalidFormatError,
     "FAILED_CONVERT": vex.FailedConvertError,
 }
 

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ✨ Added
 
+- New API exceptions (`TooManyRequestsError`, `FreeAppLimitedError`, `DisabledForFreeAppError`, `WrongFormatStructureError`, `InvalidFormatError`).
 - Public `Config` class with support for in-memory runtime overrides (`update`, `clear_overrides`, `get`).
 - Masking of sensitive values (e.g., API tokens) in string representations.
 - Exposed `Config` at the top-level package for external usage.

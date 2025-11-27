@@ -103,6 +103,11 @@ class APIException(Exception):
             │    │    │    ├── InvalidInputFormatError
             │    │    │    ├── NoConverterInputToOutputError
             │    │    │    ├── NotMatchExtensionAndInputError
+            │    │    │    ├── TooManyRequestsError
+            │    │    │    ├── FreeAppLimitedError
+            │    │    │    ├── DisabledForFreeAppError
+            │    │    │    ├── WrongFormatStructureError
+            │    │    │    ├── InvalidFormatError
             │    │    │    └── FailedConvertError
             │    │    └── HTTPResponseError
             │    ├── APITaskError
@@ -305,6 +310,29 @@ class NotMatchExtensionAndInputError(APIError):
     The file extension (`[FILE_EXTENSION]`) does not match
     the input extension (`[INPUT_EXTENSION]`).
     """
+
+
+class TooManyRequestsError(APIError):
+    """Too Many Requests. Retry after `[DELAY]` seconds."""
+
+
+class FreeAppLimitedError(APIError):
+    """
+    The free app has a daily limit.
+    Please try again in the next `[DELAY]` hours.
+    """
+
+
+class DisabledForFreeAppError(APIError):
+    """The task is disabled for the free app."""
+
+
+class WrongFormatStructureError(APIError):
+    """The format has the wrong structure."""
+
+
+class InvalidFormatError(APIError):
+    """The `[FORMAT]` format is not found in the valid formats."""
 
 
 class FailedConvertError(APIError):
