@@ -46,7 +46,7 @@ On Windows using PowerShell:
 
 ## Using Vertopal CLI
 
-Starting with **Vertopal CLI v2.0** the package ships with a public default credential (app: `free`, token: `FREE-TOKEN`) so you can try the CLI and Python client without creating an account. This default credential is suitable for personal testing and evaluation and is subject to daily rate limits; if you intend to run production workloads or to exceed the free limits, [obtain a private Application ID and Security Token](http://www.vertopal.com/en/account/api/app/new) from your Vertopal account and configure them (see the [configuration section](#setting-app-id-and-security-token-optional)).
+Starting with **Vertopal CLI v2.0** the package ships with a public default credential (app: `free`, token: `FREE-TOKEN`) so you can try the CLI and Python client without creating an account. This default credential is suitable for personal testing and evaluation and is subject to daily rate limits; if you intend to run production workloads or to exceed the free limits, [obtain a private Application ID and Security Token](https://www.vertopal.com/en/account/api/app/new) from your Vertopal account and configure them (see the [configuration section](#setting-app-id-and-security-token-optional)).
 
 Converting files from the terminal is simple:
 

@@ -204,7 +204,7 @@ class API(_Interface):
 
     def task_response(self, connector: str) -> _CustomResponse:
         """
-        Fetch the result payload for a completed task.
+        Retrieve the response of a task.
 
         Args:
             connector (str): Connector identifier for the task.
@@ -264,8 +264,8 @@ class API(_Interface):
         Args:
             writable (Writable): Destination sink implementing the
                 writable protocol.
-            connector (str): Connector identifier for the conversion
-                result to download.
+            connector (str): Connector identifier referencing the
+                download URL task.
             chunk_size (Optional[int]): Number of bytes to request per
                 streamed chunk. When `None`, the value is read from
                 configuration.
