@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *Changes currently in progress or planned for future versions will appear here.*
 
+## [2.2.0] - 2025-11-27
+
 ### ✨ Added
 
 - New API exceptions (`TooManyRequestsError`, `FreeAppLimitedError`, `DisabledForFreeAppError`, `WrongFormatStructureError`, `InvalidFormatError`).
@@ -230,7 +232,8 @@ For full details, see the **Breaking Changes** and **Added** sections below.
 - API client implementation
 - Configuration management
 
-[Unreleased]: https://github.com/vertopal/vertopal-cli/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/vertopal/vertopal-cli/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.2.0
 [2.1.0]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.1.0
 [2.0.3]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.3
 [2.0.2]: https://github.com/vertopal/vertopal-cli/releases/tag/v2.0.2
