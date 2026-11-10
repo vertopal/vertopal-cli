@@ -201,6 +201,9 @@ class _ConversionManager:
         except FileNotFoundError:
             print(f"Error: File list '{file_list_path}' not found.")
             return []
+        except OSError as exc:
+            print(f"Error: Cannot read file list '{file_list_path}': {exc.strerror or exc}.")
+            return []
 
     def _expand_inputs(
         self,
